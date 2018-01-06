@@ -35,14 +35,15 @@ exit_usage() {
   cat >&2 <<USAGE
 kubedee - ${kubedee_version}
 Usage:
-  kubedee create <name>
-  kubedee delete <name>
-  kubedee start <name>
-  kubedee start-worker <name>
-  kubedee etcd-env <name>
-  kubedee kubectl-env <name>
-  kubedee list
-  kubedee version
+  kubedee [options] create <name>         create a cluster
+  kubedee [options] delete <name>         delete a cluster
+  kubedee [options] etcd-env <name>       print etcdctl environment variables
+  kubedee [options] kubectl-env <name>    print kubectl environment variables
+  kubedee [options] list                  list all clusters
+  kubedee [options] start <name>          start a new cluster
+  kubedee [options] start-worker <name>   start a new worker node in a cluster
+  kubedee [options] up <name>             create + start in one command
+  kubedee [options] version               print kubedee version and exit
 
 Options:
   --bin-dir <dir>   where to copy the k8s binaries from (default: _output/bin)
