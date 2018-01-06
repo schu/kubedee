@@ -256,21 +256,38 @@ kubedee::copy_cni_plugins() {
 }
 
 # Args:
-#   $1 A valid network name
+#   $1 The validated cluster name
 kubedee::create_network() {
   local name="${1}"
-  if ! lxc network show "${name}" &>/dev/null; then
-    lxc network create "${name}"
+  mkdir -p "${kubedee_dir}/clusters/${name}"
+  local network_id_file="${kubedee_dir}/clusters/${name}/network_id"
+  local network_id
+  if [[ -e "${network_id_file}" ]]; then
+    network_id="$(cat "${network_id_file}")"
+  else
+    network_id="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6 || true)"
+    echo "kubedee-${network_id}" >"${network_id_file}"
+  fi
+  if ! lxc network show "kubedee-${network_id}" &>/dev/null; then
+    lxc network create "kubedee-${network_id}"
   fi
 }
 
 # Args:
-#   $1 A valid network name
+#   $1 The validated cluster name
 kubedee::delete_network() {
   local name="${1}"
-  if lxc network show "${name}" &>/dev/null; then
-    lxc network delete "${name}"
+  local network_id_file="${kubedee_dir}/clusters/${name}/network_id"
+  [[ -f "${network_id_file}" ]] || {
+    kubedee::log_warn "${network_id_file} doesn't exist"
+    return
+  }
+  local network_id
+  network_id="$(cat "${network_id_file}")"
+  if lxc network show "${network_id}" &>/dev/null; then
+    lxc network delete "${network_id}"
   fi
+  rm -f "${network_id_file}"
 }
 
 # Args:
@@ -585,10 +602,13 @@ kubedee::create_kubeconfig_worker() {
 kubedee::launch_etcd() {
   local name="${1}"
   local container_name="kubedee-${name}-etcd"
+  local network_id_file="${kubedee_dir}/clusters/${name}/network_id"
+  local network_id
+  network_id="$(cat "${network_id_file}")"
   lxc info "${container_name}" &>/dev/null && return
   lxc launch \
     --storage kubedee \
-    --network "kubedee-${name}" \
+    --network "${network_id}" \
     --config raw.lxc="lxc.aa_allow_incomplete=1" \
     "${kubedee_container_image}" "${container_name}"
 }
@@ -653,10 +673,13 @@ EOF
 kubedee::launch_controller() {
   local name="${1}"
   local container_name="kubedee-${name}-controller"
+  local network_id_file="${kubedee_dir}/clusters/${name}/network_id"
+  local network_id
+  network_id="$(cat "${network_id_file}")"
   lxc info "${container_name}" &>/dev/null && return
   lxc launch \
     --storage kubedee \
-    --network "kubedee-${name}" \
+    --network "${network_id}" \
     --config raw.lxc="lxc.aa_allow_incomplete=1" \
     "${kubedee_container_image}" "${container_name}"
 }
@@ -839,6 +862,9 @@ kubedee::launch_worker() {
   local suffix="${2}"
   local container_name="kubedee-${name}-worker-${suffix}"
   lxc info "${container_name}" &>/dev/null && return
+  local network_id_file="${kubedee_dir}/clusters/${name}/network_id"
+  local network_id
+  network_id="$(cat "${network_id_file}")"
   read -r -d '' raw_lxc <<RAW_LXC || true
 lxc.aa_profile=unconfined
 lxc.mount.auto=proc:rw sys:rw cgroup:rw
@@ -848,7 +874,7 @@ lxc.aa_allow_incomplete=1
 RAW_LXC
   lxc launch \
     --storage kubedee \
-    --network "kubedee-${name}" \
+    --network "${network_id}" \
     --profile default \
     --config security.privileged=true \
     --config security.nesting=true \
@@ -991,9 +1017,12 @@ kubedee::prepare_worker_image() {
   lxc image info "${kubedee_image_worker}" &>/dev/null && return
   kubedee::log_info "Preparing kubedee worker image ..."
   lxc delete -f "${kubedee_image_worker}-setup" &>/dev/null || true
+  local network_id_file="${kubedee_dir}/clusters/${name}/network_id"
+  local network_id
+  network_id="$(cat "${network_id_file}")"
   lxc launch \
     --storage kubedee \
-    --network "kubedee-${name}" \
+    --network "${network_id}" \
     --config raw.lxc="lxc.aa_allow_incomplete=1" \
     "${kubedee_container_image}" "${kubedee_image_worker}-setup"
   kubedee::container_wait_running "${kubedee_image_worker}-setup"

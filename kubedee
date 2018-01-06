@@ -54,7 +54,7 @@ cmd_create() {
   local name
   name="$(kubedee::validate_name "${1}")"
   [[ -d "${kubedee_dir}/clusters/${name}" ]] && kubedee::exit_error "Found existing cluster with name: ${name}"
-  kubedee::create_network "kubedee-${name}"
+  kubedee::create_network "${name}"
   kubedee::create_storage_pool
   kubedee::prepare_worker_image "${name}"
   kubedee::log_info "Create new cluster ${name} ..."
@@ -75,7 +75,7 @@ cmd_delete() {
     [[ "${c}" == "kubedee-${name}-"* ]] || continue # not part of this cluster
     lxc delete -f "${c}"
   done
-  kubedee::delete_network "kubedee-${name}"
+  kubedee::delete_network "${name}"
   rm -rf "${kubedee_dir}/clusters/${name}"
 }
 
