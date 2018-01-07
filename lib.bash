@@ -1012,8 +1012,15 @@ EOF
 kubedee::deploy_flannel() {
   local name="${1}"
   kubedee::log_info "Deploying flannel ..."
+  local k8s_minor_version
+  k8s_minor_version="$("${kubedee_dir}/clusters/${name}/rootfs/usr/local/bin/kubectl" version --client -o json | jq -r .clientVersion.minor)"
+  if [[ "${k8s_minor_version}" == 8* ]]; then
+    readonly flannel_manifest="${dir}/manifests/kube-flannel-1.8.yml"
+  else
+    readonly flannel_manifest="${dir}/manifests/kube-flannel.yml"
+  fi
   kubectl --kubeconfig "${kubedee_dir}/clusters/${name}/kubeconfig/admin.kubeconfig" \
-    apply -f "${dir}/manifests/kube-flannel.yml"
+    apply -f "${flannel_manifest}"
 }
 
 # Args:
