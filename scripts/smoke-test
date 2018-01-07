@@ -13,8 +13,7 @@ readonly dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
 pushd "${dir}/../" >/dev/null
 trap 'popd >/dev/null' exit
 
-kubectl create -f manifests/nginx.yaml
-kubectl expose deploy nginx --port 8080 --target-port 80 --type=NodePort
+kubectl apply -f manifests/nginx.yaml
 
 readonly service_ip="$(kubectl get services -o jsonpath='{.items[?(@.metadata.name=="nginx")].spec.clusterIP}')"
 readonly service_port="$(kubectl get services -o jsonpath='{.items[?(@.metadata.name=="nginx")].spec.ports[0].port}')"
@@ -24,5 +23,4 @@ until curl -s --max-time 2 "http://${service_ip}:${service_port}"; do
   sleep 1
 done
 
-kubectl delete svc nginx
 kubectl delete -f manifests/nginx.yaml
