@@ -57,6 +57,7 @@ cmd_create() {
   [[ -d "${kubedee_dir}/clusters/${name}" ]] && kubedee::exit_error "Found existing cluster with name: ${name}"
   kubedee::create_network "${name}"
   kubedee::create_storage_pool
+  kubedee::prune_old_caches "${name}"
   kubedee::prepare_worker_image "${name}"
   kubedee::log_info "Create new cluster ${name} ..."
   kubedee::copy_k8s_binaries "${name}" "${bin_dir}"

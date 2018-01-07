@@ -92,6 +92,18 @@ kubedee::cd_or_exit_error() {
 }
 
 # Args:
+#   $1 The validated cluster name
+kubedee::prune_old_caches() {
+  local name="${1}"
+  kubedee::log_info "Pruning old kubedee caches ..."
+  for cache_dir in "${kubedee_dir}/cache/"*; do
+    if [[ "${cache_dir}" != "${kubedee_cache_dir}" ]]; then
+      rm -rf "${cache_dir}"
+    fi
+  done
+}
+
+# Args:
 #   $1 The target file or directory
 #   $* The source files or directories
 kubedee::copyl_or_exit_error() {
