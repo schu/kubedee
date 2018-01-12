@@ -14,7 +14,8 @@ readonly dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
 # TODO(schu): check requirements
 # TODO(schu): source user config if available
 
-bin_dir="_output/bin"
+bin_dir="./_output/bin"
+num_worker=2
 
 readonly kubedee_version="$(
   cd "${dir}"
@@ -46,7 +47,8 @@ Usage:
   kubedee [options] version               print kubedee version and exit
 
 Options:
-  --bin-dir <dir>   where to copy the k8s binaries from (default: _output/bin)
+  --bin-dir <dir>      where to copy the k8s binaries from (default: ./_output/bin)
+  --num-worker <num>   number of worker nodes to start (default: 2)
 USAGE
   exit 1
 }
@@ -85,15 +87,21 @@ cmd_start() {
   local name
   name="$(kubedee::validate_name "${1}")"
   [[ -d "${kubedee_dir}/clusters/${name}" ]] || kubedee::exit_error "Found no cluster with name: ${name} - did you create it?"
-  local name_suffix
-  name_suffix="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6)" || true
+  declare -A worker_suffixes
+  for ((i = 0; i < num_worker; i++)); do
+    worker_suffixes[${i}]="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6 || true)"
+  done
   kubedee::log_info "Start cluster ${name} ..."
   kubedee::launch_etcd "${name}"
   kubedee::launch_controller "${name}"
-  kubedee::launch_worker "${name}" "${name_suffix}"
+  for ((i = 0; i < num_worker; i++)); do
+    kubedee::launch_worker "${name}" "${worker_suffixes[${i}]}"
+  done
   kubedee::configure_etcd "${name}"
   kubedee::configure_controller "${name}"
-  kubedee::configure_worker "${name}" "${name_suffix}"
+  for ((i = 0; i < num_worker; i++)); do
+    kubedee::configure_worker "${name}" "${worker_suffixes[${i}]}"
+  done
   kubedee::create_kubeconfig_admin "${name}"
   kubedee::configure_rbac "${name}"
   kubedee::deploy_flannel "${name}"
@@ -158,15 +166,20 @@ main() {
   local args=()
   while [[ $# -gt 0 ]]; do
     case "${1}" in
-    --bin-dir)
-      bin_dir="${2}"
-      shift
-      shift
-      ;;
-    *)
-      args+=("${1}")
-      shift
-      ;;
+      --bin-dir)
+        bin_dir="${2}"
+        shift
+        shift
+        ;;
+      --num-worker)
+        num_worker="${2}"
+        shift
+        shift
+        ;;
+      *)
+        args+=("${1}")
+        shift
+        ;;
     esac
   done
   # Bash 4.3.48(1)-release does see `${args[@]}` as unbound,
@@ -177,16 +190,16 @@ main() {
   local cmd="${1:-list}"
   shift || true
   case "${cmd}" in
-  create | delete | etcd-env | kubectl-env | list | start | start-worker | version)
-    "cmd_${cmd}" "$@"
-    ;;
-  up)
-    cmd_create "$@"
-    cmd_start "$@"
-    ;;
-  *)
-    exit_usage
-    ;;
+    create | delete | etcd-env | kubectl-env | list | start | start-worker | version)
+      "cmd_${cmd}" "$@"
+      ;;
+    up)
+      cmd_create "$@"
+      cmd_start "$@"
+      ;;
+    *)
+      exit_usage
+      ;;
   esac
 }
 

@@ -48,14 +48,14 @@ kubedee::exit_error() {
 }
 
 case "${kubedee_version}" in
-*-dirty)
-  readonly kubedee_cache_dir="${kubedee_dir}/cache/dirty"
-  readonly kubedee_image_worker="kubedee-image-worker-dirty"
-  ;;
-*)
-  readonly kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
-  readonly kubedee_image_worker="kubedee-image-worker-${kubedee_version}"
-  ;;
+  *-dirty)
+    readonly kubedee_cache_dir="${kubedee_dir}/cache/dirty"
+    readonly kubedee_image_worker="kubedee-image-worker-dirty"
+    ;;
+  *)
+    readonly kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
+    readonly kubedee_image_worker="kubedee-image-worker-${kubedee_version}"
+    ;;
 esac
 readonly kubedee_container_image="ubuntu:16.04"
 readonly kubedee_etcd_version="v3.2.12"
