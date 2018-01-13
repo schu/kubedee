@@ -55,8 +55,8 @@ kubedee up test
 [...]
 ```
 
-Note: after the installation or upgrade of kubedee, cached packages and images
-have to be updated once.
+Note: after the installation or upgrade of kubedee, kubedee requires some
+extra time to download and update cached packages and images once.
 
 With a SSD, up-to-date caches and images, setting up a cluster usually takes
 less than 60 seconds for a four node cluster (etcd, controller, 2x worker).
@@ -108,6 +108,12 @@ Start a new worker node in an existing cluster:
 
 ```
 kubedee start-worker <cluster-name>
+```
+
+Delete a cluster:
+
+```
+kubedee delete <cluster-name>
 ```
 
 Configure the `etcdctl` env:
