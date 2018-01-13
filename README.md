@@ -1,6 +1,6 @@
 # kubedee (beta)
 
-Fast multi-node Kubernetes development and test clusters on [LXD](https://github.com/lxc/lxd).
+Fast multi-node Kubernetes (>= 1.8) development and test clusters on [LXD](https://github.com/lxc/lxd).
 
 Under the hood, [CRI-O](https://github.com/kubernetes-incubator/cri-o) is used
 as container runtime and [Flannel](https://github.com/coreos/flannel) for
@@ -8,7 +8,7 @@ networking.
 
 ## Requirements
 
-* [LXD](https://github.com/lxc/lxd)
+* [LXD](https://github.com/lxc/lxd) (kubedee is tested with `lxd-2.21`)
   * Make sure your user is member of the `lxd` group (see `lxd --group ...`)
   * btrfs is used a storage driver currently and thus `btrfs-{progs,tools}` required
 * [cfssl](https://github.com/cloudflare/cfssl) with cfssljson
