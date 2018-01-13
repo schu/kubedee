@@ -34,17 +34,92 @@ have a `kubedee-` prefix.
 
 ## Usage
 
-Example:
+### Getting started
+
+First, build the version of k8s that you want to setup (or [download the server
+binaries](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG-1.9.md#server-binaries)).
+By default, kubedee looks for k8s executables in `./_output/bin/`.
+Alternatively, you can point kubedee to a directory with `--bin-dir`.
 
 ```
 cd $GOPATH/src/github.com/kubernetes/kubernetes
-git checkout v1.9.0
+git checkout v1.9.1
 make
 [...]
+```
+
+Create and start a new cluster with name "test".
+
+```
 kubedee up test
 [...]
+```
+
+Note: after the installation or upgrade of kubedee, cached packages and images
+have to be updated once.
+
+With a SSD, up-to-date caches and images, setting up a cluster usually takes
+less than 60 seconds for a four node cluster (etcd, controller, 2x worker).
+
+```
+[...]
+
+Cluster test started
+Run the following command to use kubectl with the new cluster:
+
+        export KUBECONFIG=/home/schu/.local/share/kubedee/clusters/test/kubeconfig/admin.kubeconfig
+
+Cluster nodes can be accessed with 'lxc exec <name> bash'
+Cluster files can be found in '/home/schu/.local/share/kubedee/clusters/test'
+
+Current component status is (should be healthy):
+NAME                 STATUS    MESSAGE              ERROR
+scheduler            Healthy   ok
+controller-manager   Healthy   ok
+etcd-0               Healthy   {"health": "true"}
+
+Current node status is (should be ready soon):
+NAME                        STATUS     ROLES     AGE       VERSION
+kubedee-test-worker-i7k3n1   Ready      <none>    11s       v1.9.1
+kubedee-test-worker-lp2cno   NotReady   <none>    6s        v1.9.1
+```
+
+Finally, configure the current shell to use the new cluster:
+
+```
 eval $(kubedee kubectl-env test)
-kubectl get nodes
+```
+
+### Cheatsheet
+
+List the available clusters:
+
+```
+kubedee [list]
+```
+
+Start a cluster with less/more worker nodes than the default of 2:
+
+```
+kubedee up --num-workers 4 <cluster-name>
+```
+
+Start a new worker node in an existing cluster:
+
+```
+kubedee start-worker <cluster-name>
+```
+
+Configure the `etcdctl` env:
+
+```
+eval $(kubedee etcd-env <cluster-name>)
+```
+
+See all available commands and options:
+
+```
+kubedee help
 ```
 
 ## Smoke test
