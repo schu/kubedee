@@ -73,13 +73,12 @@ readonly lxd_status_code_running=103
 kubedee::validate_name() {
   local orig_name="${1:-}"
   # We must be fairly strict about names, since they are used
-  # for container's hostname as well as the network interface.
-  # http://elixir.free-electrons.com/linux/v4.13/source/net/core/dev.c#L1023
+  # for container's hostname
   if ! echo "${orig_name}" | grep -qE '^[[:alnum:]_-.]{1,50}$'; then
     kubedee::exit_error "Invalid name (only '[[:alnum:]-]{1,50}' allowed): ${orig_name}"
   fi
   # Do some normalization to allow input like 'v1.8.4' while
-  # matching host / interface name requirements
+  # matching host name requirements
   local name="${orig_name//[._]/-}"
   if [[ "${orig_name}" != "${name}" ]]; then
     kubedee::log_warn "Normalized name '${orig_name}' -> '${name}'"
@@ -87,6 +86,8 @@ kubedee::validate_name() {
   echo "${name}"
 }
 
+# Args:
+#   $1 The target directory
 kubedee::cd_or_exit_error() {
   local target="${1}"
   cd "${target}" || kubedee::exit_error "Failed to cd to ${target}"
@@ -314,16 +315,22 @@ kubedee::create_storage_pool() {
   fi
 }
 
+# Args:
+#   $1 The full container name
 kubedee::container_status_code() {
   local name="${1}"
   lxc list --format json | jq -r ".[] | select(.name == \"${name}\").state.status_code"
 }
 
+# Args:
+#   $1 The full container name
 kubedee::container_ipv4_address() {
   local name="${1}"
   lxc list --format json | jq -r ".[] | select(.name == \"${name}\").state.network.eth0.addresses[] | select(.family == \"inet\").address"
 }
 
+# Args:
+#   $1 The full container name
 kubedee::container_wait_running() {
   local name="${1}"
   until [[ "$(kubedee::container_status_code "${name}")" -eq ${lxd_status_code_running} ]]; do
@@ -497,6 +504,7 @@ EOF
 
 # Args:
 #   $1 The validated cluster name
+#   $2 The worker name suffix
 kubedee::create_certificate_worker() {
   local name="${1}"
   local suffix="${2}"
@@ -560,6 +568,7 @@ kubedee::create_kubeconfig_admin() {
 
 # Args:
 #   $1 The validated cluster name
+#   $2 The worker name suffix
 kubedee::create_kubeconfig_worker() {
   local name="${1}"
   local suffix="${2}"
@@ -870,6 +879,7 @@ EOF
 
 # Args:
 #   $1 The validated cluster name
+#   $2 The worker name suffix
 kubedee::launch_worker() {
   local name="${1}"
   local suffix="${2}"
@@ -898,6 +908,7 @@ RAW_LXC
 
 # Args:
 #   $1 The validated cluster name
+#   $2 The worker name suffix
 kubedee::configure_worker() {
   local name="${1}"
   local suffix="${2}"
