@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Expected variables:
+#   $kubedee_source_dir The directory where kubedee's source code is (i.e. git repo)
 #   $kubedee_dir The directory to store kubedee's internal data
 #   $kubedee_version The kubedee version, used for the cache
 
@@ -42,8 +43,8 @@ kubedee::exit_error() {
   return 1
 }
 # shellcheck disable=SC2154
-[[ -z "${dir}" ]] && {
-  kubedee::log_error "Internal error: \$dir not set"
+[[ -z "${kubedee_source_dir}" ]] && {
+  kubedee::log_error "Internal error: \$kubedee_source_dir not set"
   return 1
 }
 
@@ -1015,9 +1016,9 @@ kubedee::deploy_flannel() {
   local k8s_minor_version
   k8s_minor_version="$("${kubedee_dir}/clusters/${name}/rootfs/usr/local/bin/kubectl" version --client -o json | jq -r .clientVersion.minor)"
   if [[ "${k8s_minor_version}" == 8* ]]; then
-    readonly flannel_manifest="${dir}/manifests/kube-flannel-1.8.yml"
+    readonly flannel_manifest="${kubedee_source_dir}/manifests/kube-flannel-1.8.yml"
   else
-    readonly flannel_manifest="${dir}/manifests/kube-flannel.yml"
+    readonly flannel_manifest="${kubedee_source_dir}/manifests/kube-flannel.yml"
   fi
   kubectl --kubeconfig "${kubedee_dir}/clusters/${name}/kubeconfig/admin.kubeconfig" \
     apply -f "${flannel_manifest}"

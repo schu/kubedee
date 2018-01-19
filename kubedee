@@ -9,7 +9,7 @@ while [[ -L "${bash_source}" ]]; do
   bash_source="$(readlink "${bash_source}")"
   [[ "${bash_source}" != /* ]] && bash_source="${bash_dir}/${bash_source}"
 done
-readonly dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
+readonly kubedee_source_dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
 
 # TODO(schu): check requirements
 # TODO(schu): source user config if available
@@ -18,7 +18,7 @@ bin_dir="./_output/bin"
 num_worker=2
 
 readonly kubedee_version="$(
-  cd "${dir}"
+  cd "${kubedee_source_dir}"
   git describe --tags --always --dirty
 )"
 
@@ -26,7 +26,7 @@ readonly kubedee_dir="${HOME}/.local/share/kubedee"
 mkdir -p "${kubedee_dir}"
 
 # shellcheck source=/dev/null
-source "${dir}/lib.bash"
+source "${kubedee_source_dir}/lib.bash"
 
 if [[ $EUID -eq 0 ]]; then
   kubedee::exit_error "kubedee is not meant to be run as root"
