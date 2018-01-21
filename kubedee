@@ -41,6 +41,7 @@ Usage:
   kubedee [options] etcd-env <name>       print etcdctl environment variables
   kubedee [options] kubectl-env <name>    print kubectl environment variables
   kubedee [options] list                  list all clusters
+  kubedee [options] smoke-test <name>     smoke test a cluster
   kubedee [options] start <name>          start a new cluster
   kubedee [options] start-worker <name>   start a new worker node in a cluster
   kubedee [options] up <name>             create + start in one command
@@ -158,6 +159,12 @@ export ETCDCTL_API=3
 EOF
 }
 
+cmd_smoke-test() {
+  local name
+  name="$(kubedee::validate_name "${1}")"
+  kubedee::smoke_test "${name}"
+}
+
 cmd_version() {
   echo "${kubedee_version}"
 }
@@ -190,7 +197,7 @@ main() {
   local cmd="${1:-list}"
   shift || true
   case "${cmd}" in
-    create | delete | etcd-env | kubectl-env | list | start | start-worker | version)
+    create | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | version)
       "cmd_${cmd}" "$@"
       ;;
     up)

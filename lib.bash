@@ -1070,3 +1070,53 @@ EOF
   lxc publish "${kubedee_image_worker}-setup/snap" --alias "${kubedee_image_worker}" kubedee-version="${kubedee_version}"
   lxc delete -f "${kubedee_image_worker}-setup"
 }
+
+# Args:
+#   $1 The validated cluster name
+kubedee::smoke_test() {
+  local name="${1}"
+  local kubeconfig="${kubedee_dir}/clusters/${name}/kubeconfig/admin.kubeconfig"
+  local deployment_suffix
+  deployment_suffix="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6 || true)"
+  local deployment_name="kubedee-smoke-test-${name}-${deployment_suffix}"
+  kubedee::log_info "Running smoke test for cluster ${name} ..."
+  kubectl --kubeconfig "${kubeconfig}" run "${deployment_name}" --image=nginx --replicas=3
+  kubectl --kubeconfig "${kubeconfig}" expose deployment "${deployment_name}" --target-port=80 --port=8080 --type=NodePort
+  # Pick one of the worker nodes with kube-proxy
+  # running and test if the service is reachable
+  local worker
+  for c in $(lxc list --format json | jq -r '.[].name'); do
+    if [[ "${c}" == "kubedee-${name}-worker-"* ]]; then
+      worker="${c}"
+      break
+    fi
+  done
+  delete_smoke_test() {
+    kubectl --kubeconfig "${kubeconfig}" delete service "${deployment_name}"
+    kubectl --kubeconfig "${kubeconfig}" delete deployment "${deployment_name}"
+  }
+  if [[ -z "${worker}" ]]; then
+    delete_smoke_test
+    kubedee::exit_error "No worker node found in cluster ${name} to run smoke test"
+  fi
+  local service_port
+  service_port="$(kubectl --kubeconfig "${kubeconfig}" get services "${deployment_name}" -o jsonpath='{.spec.ports[0].nodePort}')"
+  local now
+  now="$(date +%s)"
+  local timeout
+  timeout=$((now + 60))
+  while true; do
+    if [[ $(date +%s) -gt ${timeout} ]]; then
+      delete_smoke_test
+      kubedee::exit_error "Failed to connect to ${deployment_name} within 60 seconds"
+    fi
+    if curl --ipv4 --fail --silent --max-time 3 "${worker}.lxd:${service_port}" | grep -q "Welcome to nginx!"; then
+      break
+    else
+      kubedee::log_info "${deployment_name} not ready yet"
+      sleep 3
+    fi
+  done
+  kubedee::log_info "Successfully connected to ${deployment_name}"
+  delete_smoke_test
+}

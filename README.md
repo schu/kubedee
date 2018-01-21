@@ -116,6 +116,12 @@ Delete a cluster:
 kubedee delete <cluster-name>
 ```
 
+Configure the `kubectl` env:
+
+```
+eval $(kubedee kubectl-env <cluster-name>
+```
+
 Configure the `etcdctl` env:
 
 ```
@@ -130,7 +136,8 @@ kubedee help
 
 ## Smoke test
 
+kubedee has a `smoke-test` subcommand:
+
 ```
-./scripts/configure-service-route
-./scripts/smoke-test
+kubedee smoke-test <cluster-name>
 ```
