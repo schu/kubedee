@@ -134,8 +134,3 @@ kubedee help
 ./scripts/configure-service-route
 ./scripts/smoke-test
 ```
-
-## Known issues yet to be fixed
-
-* `error: unable to recognize "STDIN": no matches for rbac.authorization.k8s.io/, Kind=ClusterRole`
-  Make sure the apiserver is ready before apply.
