@@ -119,7 +119,7 @@ kubedee delete <cluster-name>
 Configure the `kubectl` env:
 
 ```
-eval $(kubedee kubectl-env <cluster-name>
+eval $(kubedee kubectl-env <cluster-name>)
 ```
 
 Configure the `etcdctl` env:
