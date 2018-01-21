@@ -584,39 +584,39 @@ kubedee::create_kubeconfig_worker() {
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
     --embed-certs=true \
     --server="https://${controller_ip}:6443" \
-    --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kube-proxy.kubeconfig"
 
   kubectl config set-credentials kube-proxy \
     --client-certificate="${cluster_dir}/certificates/kube-proxy.pem" \
     --client-key="${cluster_dir}/certificates/kube-proxy-key.pem" \
     --embed-certs=true \
-    --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kube-proxy.kubeconfig"
 
   kubectl config set-context default \
     --cluster=kubedee \
     --user=kube-proxy \
-    --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kube-proxy.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
+  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kube-proxy.kubeconfig"
 
   kubectl config set-cluster kubedee \
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
     --embed-certs=true \
     --server="https://${controller_ip}:6443" \
-    --kubeconfig="${cluster_dir}/kubeconfig/kubelet.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 
   kubectl config set-credentials "system:node:${container_name}" \
     --client-certificate="${cluster_dir}/certificates/${container_name}.pem" \
     --client-key="${cluster_dir}/certificates/${container_name}-key.pem" \
     --embed-certs=true \
-    --kubeconfig="${cluster_dir}/kubeconfig/kubelet.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 
   kubectl config set-context default \
     --cluster=kubedee \
     --user="system:node:${container_name}" \
-    --kubeconfig="${cluster_dir}/kubeconfig/kubelet.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kubelet.kubeconfig"
+  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 }
 
 # Args:
@@ -974,7 +974,7 @@ ExecStart=/usr/local/bin/kubelet \
   --container-runtime-endpoint=unix:///var/run/crio/crio.sock \
   --image-pull-progress-deadline=2m \
   --image-service-endpoint=unix:///var/run/crio/crio.sock \
-  --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
+  --kubeconfig=/etc/kubernetes/${container_name}-kubelet.kubeconfig \
   --network-plugin=cni \
   --pod-cidr=10.20.0.0/16 \
   --register-node=true \
@@ -996,7 +996,7 @@ Description=Kubernetes Kube Proxy
 [Service]
 ExecStart=/usr/local/bin/kube-proxy \
   --cluster-cidr=10.200.0.0/16 \
-  --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig \
+  --kubeconfig=/etc/kubernetes/${container_name}-kube-proxy.kubeconfig \
   --proxy-mode=iptables \
   --v=2
 Restart=on-failure
