@@ -59,8 +59,8 @@ case "${kubedee_version}" in
     ;;
 esac
 readonly kubedee_container_image="ubuntu:16.04"
-readonly kubedee_etcd_version="v3.2.12"
-readonly kubedee_crio_version="v1.9.0"
+readonly kubedee_etcd_version="v3.3.0"
+readonly kubedee_crio_version="v1.9.1"
 readonly kubedee_runc_version="v1.0.0-rc4"
 readonly kubedee_cni_plugins_version="v0.6.0"
 
