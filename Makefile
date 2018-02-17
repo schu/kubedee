@@ -1,7 +1,6 @@
 bash_files="kubedee"
 bash_files+="lib.bash"
 bash_files+="scripts/configure-service-route"
-bash_files+="scripts/smoke-test"
 
 all: lint
 
