@@ -1018,6 +1018,19 @@ kubedee::deploy_flannel() {
 
 # Args:
 #   $1 The validated cluster name
+#   $2 The container name
+kubedee::label_and_taint_controller() {
+  local cluster_name="${1}"
+  local container_name="${2}"
+  kubedee::log_info "Applying labels and taints to ${container_name} ..."
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    label node "${container_name}" node-role.kubernetes.io/master=""
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    taint node "${container_name}" node-role.kubernetes.io/master=:NoSchedule
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::prepare_worker_image() {
   local cluster_name="${1}"
   kubedee::log_info "Pruning old kubedee worker images ..."
