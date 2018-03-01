@@ -126,8 +126,9 @@ cmd_start-worker() {
   [[ -d "${kubedee_dir}/clusters/${cluster_name}" ]] || kubedee::exit_error "Found no cluster with name: ${cluster_name} - did you create it?"
   local name_suffix
   name_suffix="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6)" || true
-  kubedee::launch_worker "${cluster_name}" "${name_suffix}"
-  kubedee::configure_worker "${cluster_name}" "${name_suffix}"
+  kubedee::prepare_worker_image "${cluster_name}"
+  kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}"
+  kubedee::configure_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}"
   kubedee::log_info "Node ${cluster_name}-${name_suffix} started"
 }
 
