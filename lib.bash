@@ -914,6 +914,13 @@ kubedee::configure_worker() {
 
   lxc config device add "${container_name}" cni-plugins disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/opt/cni/bin/" path="/opt/cni/bin/"
 
+  # Mount the host loop devices into the container to allow the kubelet
+  # to gather rootfs info when the host root is on a loop device
+  # (e.g. `/dev/mapper/c--vg-root on /dev/loop1 type ext4 ...`)
+  for ldev in /dev/loop[0-9]; do
+    lxc config device add "${container_name}" "${ldev#/dev/}" unix-block source="${ldev}" path="${ldev}"
+  done
+
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
