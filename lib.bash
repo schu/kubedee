@@ -1100,6 +1100,8 @@ kubedee::smoke_test() {
     delete_smoke_test
     kubedee::exit_error "No worker node found in cluster ${cluster_name} to run smoke test"
   fi
+  local worker_ip
+  worker_ip="$(kubedee::container_ipv4_address "${worker}")"
   local service_port
   service_port="$(kubectl --kubeconfig "${kubeconfig}" get services "${deployment_name}" -o jsonpath='{.spec.ports[0].nodePort}')"
   local now
@@ -1111,7 +1113,7 @@ kubedee::smoke_test() {
       delete_smoke_test
       kubedee::exit_error "Failed to connect to ${deployment_name} within 120 seconds"
     fi
-    if curl --ipv4 --fail --silent --max-time 3 "${worker}.lxd:${service_port}" | grep -q "Welcome to nginx!"; then
+    if curl --ipv4 --fail --silent --max-time 3 "${worker_ip}:${service_port}" | grep -q "Welcome to nginx!"; then
       break
     else
       kubedee::log_info "${deployment_name} not ready yet"
