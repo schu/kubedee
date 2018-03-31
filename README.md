@@ -8,7 +8,7 @@ networking.
 
 ## Requirements
 
-* [LXD](https://github.com/lxc/lxd) (The author currently uses `lxd-2.21` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source))
+* [LXD](https://github.com/lxc/lxd) (The author currently uses `lxd-3.0.0` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source))
   * Make sure your user is member of the `lxd` group (see `lxd --group ...`)
   * btrfs is used a storage driver currently and thus `btrfs-{progs,tools}` required
 * [cfssl](https://github.com/cloudflare/cfssl) with cfssljson
