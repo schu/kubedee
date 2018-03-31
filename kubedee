@@ -80,6 +80,7 @@ cmd_create() {
 cmd_delete() {
   local cluster_name
   cluster_name="$(kubedee::validate_name "${1}")"
+  [[ ! -d "${kubedee_dir}/clusters/${cluster_name}" ]] && kubedee::exit_error "Found no existing cluster with name: ${cluster_name}"
   kubedee::log_info "Delete cluster ${cluster_name} ..."
   for c in $(lxc list --format json | jq -r '.[].name'); do
     [[ "${c}" == "kubedee-${cluster_name}-"* ]] || continue # not part of this cluster
