@@ -3,6 +3,7 @@
 # Expected variables:
 #   $kubedee_source_dir The directory where kubedee's source code is (i.e. git repo)
 #   $kubedee_dir The directory to store kubedee's internal data
+#   $kubedee_cache_dir The directory to store tools required by kubedee
 #   $kubedee_version The kubedee version, used for the cache
 
 kubedee::log_info() {
@@ -38,6 +39,11 @@ kubedee::exit_error() {
   return 1
 }
 # shellcheck disable=SC2154
+[[ -z "${kubedee_cache_dir}" ]] && {
+  kubedee::log_error "Internal error: \$kubedee_cache_dir not set"
+  return 1
+}
+# shellcheck disable=SC2154
 [[ -z "${kubedee_version}" ]] && {
   kubedee::log_error "Internal error: \$kubedee_version not set"
   return 1
@@ -48,17 +54,8 @@ kubedee::exit_error() {
   return 1
 }
 
-case "${kubedee_version}" in
-  *-dirty)
-    readonly kubedee_cache_dir="${kubedee_dir}/cache/dirty"
-    readonly kubedee_image_worker="kubedee-image-worker-dirty"
-    ;;
-  *)
-    readonly kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
-    readonly kubedee_image_worker="kubedee-image-worker-${kubedee_version}"
-    ;;
-esac
-readonly kubedee_container_image="ubuntu:16.04"
+readonly kubedee_base_image="ubuntu:16.04"
+readonly kubedee_container_image="kubedee-image-worker-${kubedee_version}"
 readonly kubedee_etcd_version="v3.3.0"
 readonly kubedee_crio_version="v1.9.1"
 readonly kubedee_runc_version="v1.0.0-rc5"
@@ -885,7 +882,7 @@ RAW_LXC
     --config security.nesting=true \
     --config linux.kernel_modules=ip_tables,ip6_tables,netlink_diag,nf_nat,overlay \
     --config raw.lxc="${raw_lxc}" \
-    "${kubedee_image_worker}" "${container_name}"
+    "${kubedee_container_image}" "${container_name}"
 }
 
 # Args:
@@ -1042,13 +1039,13 @@ kubedee::prepare_worker_image() {
   local cluster_name="${1}"
   kubedee::log_info "Pruning old kubedee worker images ..."
   for c in $(lxc image list --format json | jq -r '.[].aliases[].name'); do
-    if [[ "${c}" == "kubedee-image-worker-"* ]] && ! [[ "${c}" == "${kubedee_image_worker}" ]]; then
+    if [[ "${c}" == "kubedee-image-worker-"* ]] && ! [[ "${c}" == "${kubedee_container_image}" ]]; then
       lxc image delete "${c}"
     fi
   done
-  lxc image info "${kubedee_image_worker}" &>/dev/null && return
+  lxc image info "${kubedee_container_image}" &>/dev/null && return
   kubedee::log_info "Preparing kubedee worker image ..."
-  lxc delete -f "${kubedee_image_worker}-setup" &>/dev/null || true
+  lxc delete -f "${kubedee_container_image}-setup" &>/dev/null || true
   local network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
   local network_id
   network_id="$(cat "${network_id_file}")"
@@ -1056,9 +1053,9 @@ kubedee::prepare_worker_image() {
     --storage kubedee \
     --network "${network_id}" \
     --config raw.lxc="lxc.aa_allow_incomplete=1" \
-    "${kubedee_container_image}" "${kubedee_image_worker}-setup"
-  kubedee::container_wait_running "${kubedee_image_worker}-setup"
-  cat <<'EOF' | lxc exec "${kubedee_image_worker}-setup" bash
+    "${kubedee_base_image}" "${kubedee_container_image}-setup"
+  kubedee::container_wait_running "${kubedee_container_image}-setup"
+  cat <<'EOF' | lxc exec "${kubedee_container_image}-setup" bash
 set -euo pipefail
 
 apt-get update
@@ -1067,9 +1064,9 @@ apt-get upgrade -y
 # crio requires libgpgme11
 apt-get install -y libgpgme11
 EOF
-  lxc snapshot "${kubedee_image_worker}-setup" snap
-  lxc publish "${kubedee_image_worker}-setup/snap" --alias "${kubedee_image_worker}" kubedee-version="${kubedee_version}"
-  lxc delete -f "${kubedee_image_worker}-setup"
+  lxc snapshot "${kubedee_container_image}-setup" snap
+  lxc publish "${kubedee_container_image}-setup/snap" --alias "${kubedee_container_image}" kubedee-version="${kubedee_version}"
+  lxc delete -f "${kubedee_container_image}-setup"
 }
 
 # Args:

@@ -11,19 +11,24 @@ while [[ -L "${bash_source}" ]]; do
 done
 readonly kubedee_source_dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
 
-# TODO(schu): check requirements
-# TODO(schu): source user config if available
+readonly kubedee_config_dir="${HOME}/.config/kubedee"
 
-bin_dir="./_output/bin"
-num_worker=2
+# TODO(schu): check requirements
+
+if [[ -f "${kubedee_config_dir}/config" ]]; then
+  # shellcheck source=/dev/null
+  source "${kubedee_config_dir}/config"
+fi
 
 readonly kubedee_version="$(
   cd "${kubedee_source_dir}"
   git describe --tags --always --dirty
 )"
 
-readonly kubedee_dir="${HOME}/.local/share/kubedee"
-mkdir -p "${kubedee_dir}"
+bin_dir="./_output/bin"
+kubedee_dir="${kubedee_dir:-${HOME}/.local/share/kubedee}"
+kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
+num_worker=2
 
 # shellcheck source=/dev/null
 source "${kubedee_source_dir}/lib.bash"
@@ -180,6 +185,12 @@ main() {
         shift
         shift
         ;;
+      --dir)
+        kubedee_dir="${2}"
+        kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
+        shift
+        shift
+        ;;
       --num-worker)
         num_worker="${2}"
         shift
@@ -191,6 +202,9 @@ main() {
         ;;
     esac
   done
+  # shellcheck disable=SC2034
+  declare -g -r kubedee_dir kubedee_cache_dir
+  mkdir -p "${kubedee_dir}"
   # Bash 4.3.48(1)-release does see `${args[@]}` as unbound,
   # 4.4.12(1)-release does not. Disable `nounset` temporarily.
   set +u
