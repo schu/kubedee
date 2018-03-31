@@ -222,6 +222,7 @@ main() {
       cmd_start "$@"
       ;;
     *)
+      echo "Unknown command: ${cmd}" >&2
       exit_usage
       ;;
   esac
