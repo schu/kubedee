@@ -55,7 +55,7 @@ kubedee::exit_error() {
 }
 
 readonly kubedee_base_image="ubuntu:16.04"
-readonly kubedee_container_image="kubedee-image-worker-${kubedee_version}"
+readonly kubedee_container_image="kubedee-container-image-${kubedee_version}"
 readonly kubedee_etcd_version="v3.3.0"
 readonly kubedee_crio_version="v1.9.1"
 readonly kubedee_runc_version="v1.0.0-rc5"
@@ -1035,16 +1035,16 @@ kubedee::label_and_taint_controller() {
 
 # Args:
 #   $1 The validated cluster name
-kubedee::prepare_worker_image() {
+kubedee::prepare_container_image() {
   local cluster_name="${1}"
-  kubedee::log_info "Pruning old kubedee worker images ..."
+  kubedee::log_info "Pruning old kubedee container images ..."
   for c in $(lxc image list --format json | jq -r '.[].aliases[].name'); do
-    if [[ "${c}" == "kubedee-image-worker-"* ]] && ! [[ "${c}" == "${kubedee_container_image}" ]]; then
+    if [[ "${c}" == "kubedee-container-image-"* ]] && ! [[ "${c}" == "${kubedee_container_image}" ]]; then
       lxc image delete "${c}"
     fi
   done
   lxc image info "${kubedee_container_image}" &>/dev/null && return
-  kubedee::log_info "Preparing kubedee worker image ..."
+  kubedee::log_info "Preparing kubedee container image ..."
   lxc delete -f "${kubedee_container_image}-setup" &>/dev/null || true
   local network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
   local network_id

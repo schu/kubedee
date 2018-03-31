@@ -66,7 +66,7 @@ cmd_create() {
   kubedee::create_network "${cluster_name}"
   kubedee::create_storage_pool
   kubedee::prune_old_caches "${cluster_name}"
-  kubedee::prepare_worker_image "${cluster_name}"
+  kubedee::prepare_container_image "${cluster_name}"
   kubedee::log_info "Create new cluster ${cluster_name} ..."
   kubedee::copy_k8s_binaries "${cluster_name}" "${bin_dir}"
   kubedee::copy_etcd_binaries "${cluster_name}"
@@ -132,7 +132,7 @@ cmd_start-worker() {
   [[ -d "${kubedee_dir}/clusters/${cluster_name}" ]] || kubedee::exit_error "Found no cluster with name: ${cluster_name} - did you create it?"
   local name_suffix
   name_suffix="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6)" || true
-  kubedee::prepare_worker_image "${cluster_name}"
+  kubedee::prepare_container_image "${cluster_name}"
   kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}"
   kubedee::configure_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}"
   kubedee::log_info "Node ${cluster_name}-${name_suffix} started"
