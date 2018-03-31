@@ -966,6 +966,7 @@ ExecStart=/usr/local/bin/kubelet \
   --runtime-request-timeout=10m \
   --tls-cert-file=/etc/kubernetes/${container_name}.pem \
   --tls-private-key-file=/etc/kubernetes/${container_name}-key.pem \
+  --feature-gates=MountPropagation=false \
   --v=2
 Restart=on-failure
 RestartSec=5
