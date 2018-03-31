@@ -57,7 +57,6 @@ kubedee::exit_error() {
 readonly kubedee_base_image="ubuntu:16.04"
 readonly kubedee_container_image="kubedee-container-image-${kubedee_version}"
 readonly kubedee_etcd_version="v3.3.0"
-readonly kubedee_crio_version="v1.9.1"
 readonly kubedee_runc_version="v1.0.0-rc5"
 readonly kubedee_cni_plugins_version="v0.6.0"
 
@@ -168,16 +167,17 @@ kubedee::fetch_etcd() {
 }
 
 kubedee::fetch_crio() {
-  local cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
+  local version="${1}"
+  local cache_dir="${kubedee_cache_dir}/crio/${version}"
   mkdir -p "${cache_dir}"
   [[ -e "${cache_dir}/crio" ]] && return
   local tmp_dir
   tmp_dir="$(mktemp -d /tmp/kubedee-XXXXXX)"
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
-    kubedee::log_info "Fetch crio ${kubedee_crio_version} ..."
-    curl -fsSL -O "https://files.schu.io/pub/cri-o/crio-amd64-${kubedee_crio_version}.tar.gz"
-    tar -xf "crio-amd64-${kubedee_crio_version}.tar.gz"
+    kubedee::log_info "Fetch crio ${version} ..."
+    curl -fsSL -O "https://files.schu.io/pub/cri-o/crio-amd64-${version}.tar.gz"
+    tar -xf "crio-amd64-${version}.tar.gz"
     kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pause seccomp.json crio.conf crictl.yaml crio-umount.conf policy.json
   )
   rm -rf "${tmp_dir}"
@@ -229,10 +229,23 @@ kubedee::copy_etcd_binaries() {
 
 # Args:
 #   $1 The validated cluster name
+kubedee::k8s_minor_version() {
+  local cluster_name="${1}"
+  "${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kubectl" version --client -o json | jq -r .clientVersion.minor
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::copy_crio_files() {
   local cluster_name="${1}"
-  kubedee::fetch_crio
-  local cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
+  local crio_version="v1.9.1"
+  local k8s_minor_version
+  k8s_minor_version="$(kubedee::k8s_minor_version "${cluster_name}")"
+  if [[ "${k8s_minor_version}" == 10* ]]; then
+    crio_version="v1.10.0"
+  fi
+  kubedee::fetch_crio "${crio_version}"
+  local cache_dir="${kubedee_cache_dir}/crio/${crio_version}"
   local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/crio"
@@ -1011,7 +1024,7 @@ kubedee::deploy_flannel() {
   local cluster_name="${1}"
   kubedee::log_info "Deploying flannel ..."
   local k8s_minor_version
-  k8s_minor_version="$("${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kubectl" version --client -o json | jq -r .clientVersion.minor)"
+  k8s_minor_version="$(kubedee::k8s_minor_version "${cluster_name}")"
   if [[ "${k8s_minor_version}" == 8* ]]; then
     readonly flannel_manifest="${kubedee_source_dir}/manifests/kube-flannel-1.8.yml"
   else
