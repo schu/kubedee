@@ -112,6 +112,7 @@ cmd_start() {
   kubedee::create_kubeconfig_admin "${cluster_name}"
   kubedee::configure_rbac "${cluster_name}"
   kubedee::deploy_flannel "${cluster_name}"
+  kubedee::deploy_kube_dns "${cluster_name}"
   kubedee::label_and_taint_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
   kubedee::log_success "\nCluster ${cluster_name} started"
   kubedee::log_success "Run the following command to use kubectl with the new cluster:"

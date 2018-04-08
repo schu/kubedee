@@ -1030,6 +1030,16 @@ kubedee::deploy_flannel() {
 
 # Args:
 #   $1 The validated cluster name
+kubedee::deploy_kube_dns() {
+  local cluster_name="${1}"
+  kubedee::log_info "Deploying kube-dns ..."
+  readonly dns_manifest="${kubedee_source_dir}/manifests/kube-dns.yml"
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    apply -f "${dns_manifest}"
+}
+
+# Args:
+#   $1 The validated cluster name
 #   $2 The container name
 kubedee::label_and_taint_controller() {
   local cluster_name="${1}"
