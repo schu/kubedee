@@ -6,6 +6,8 @@ Under the hood, [CRI-O](https://github.com/kubernetes-incubator/cri-o) is used
 as container runtime and [Flannel](https://github.com/coreos/flannel) for
 networking.
 
+For questions or feedback, please open an issue or join `#kubedee` on [freenode].
+
 ## Requirements
 
 * [LXD](https://github.com/lxc/lxd) (The author currently uses `lxd-3.0.0` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source))
@@ -141,3 +143,5 @@ kubedee has a `smoke-test` subcommand:
 ```
 kubedee smoke-test <cluster-name>
 ```
+
+[freenode]: https://freenode.net/
