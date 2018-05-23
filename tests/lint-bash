@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -euo pipefail
+
+test_status=0
+for filename in "$@"; do
+  if ! diff -u "${filename}" <(shfmt -i 2 "${filename}"); then
+    test_status=1
+  fi
+  if ! shellcheck "${filename}"; then
+    test_status=1
+  fi
+done
+exit ${test_status}

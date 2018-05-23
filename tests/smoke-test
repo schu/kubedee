@@ -31,7 +31,7 @@ for v in "${k8s_versions[@]}"; do
       "kubernetes/server/bin/"{kube-apiserver,kube-controller-manager,kubectl,kubelet,kube-proxy,kube-scheduler}
   )
   cluster_name="test-${v}"
-  kdee up --bin-dir "${bin_dir}/kubernetes/server/bin" "${cluster_name}"
+  kdee up --num-worker 1 --bin-dir "${bin_dir}/kubernetes/server/bin" "${cluster_name}"
   kdee smoke-test "${cluster_name}"
   kdee delete "${cluster_name}"
 done

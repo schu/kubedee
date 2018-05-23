@@ -1,0 +1,13 @@
+dist: xenial
+sudo: enabled
+
+install:
+  - sudo apt-get update
+  - until sudo apt install -t xenial-backports -y btrfs-tools lxd lxd-client; do sleep 5; done
+  - sudo modprobe btrfs
+  - sudo lxd init --auto --storage-backend btrfs
+  - sudo lxc network create lxdbr0
+  - sudo lxc network attach-profile lxdbr0 default eth0
+
+script:
+  - KUBEDEE_DEBUG=1 ./tests/ci

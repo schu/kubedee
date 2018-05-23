@@ -1,0 +1,95 @@
+#!/bin/bash
+
+[[ -n "${KUBEDEE_DEBUG}" ]] && set -x
+set -euo pipefail
+set +e
+
+bash_source="${BASH_SOURCE[0]}"
+while [[ -L "${bash_source}" ]]; do
+  bash_dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
+  bash_source="$(readlink "${bash_source}")"
+  [[ "${bash_source}" != /* ]] && bash_source="${bash_dir}/${bash_source}"
+done
+readonly kubedee_source_dir="$(cd -P "$(dirname "${bash_source}")" && pwd)/.."
+
+readonly container_name="kubedee-ci"
+
+sudo lxc version
+sudo lxc info
+
+read -r -d '' raw_lxc <<RAW_LXC || true
+lxc.aa_profile=unconfined
+lxc.mount.auto=proc:rw sys:rw cgroup:rw
+lxc.cgroup.devices.allow=a
+lxc.cap.drop=
+lxc.aa_allow_incomplete=1
+RAW_LXC
+sudo lxc launch \
+  --config security.privileged=true \
+  --config security.nesting=true \
+  --config linux.kernel_modules=ip_tables,ip6_tables,netlink_diag,nf_nat,overlay,btrfs \
+  --config raw.lxc="${raw_lxc}" \
+  "ubuntu:16.04" "${container_name}"
+
+sudo lxc config device add "${container_name}" kubedee-source-dir disk source="${kubedee_source_dir}" path="/kubedee"
+
+sudo btrfs filesystem show /var/lib/lxd/storage-pools/default/
+
+sudo lxc info "${container_name}"
+
+df -h
+
+sleep 5 # wait for container to start
+
+cat <<'EOF' | sudo lxc exec "${container_name}" bash
+set -euo pipefail
+set -x
+
+trap 'df -h; sudo journalctl -u lxd | tail -n 50' EXIT
+
+apt-get update
+apt-get upgrade -y
+
+apt install -t xenial-backports -y lxd lxd-client curl jq
+
+sudo lxc version
+
+for i in {0..8}; do if ! test -e "/dev/loop${i}"; then mknod "/dev/loop${i}" b 7 ${i}; fi; done
+
+ls -l /var/lib/lxd/disks/
+ls -l /var/lib/lxd/storage-pools/
+sudo lxc storage list
+sudo mount | grep btrfs
+sudo btrfs filesystem show /var/lib/lxd/storage-pools/default/ || true
+
+lxc storage create default btrfs source=/var/lib/lxd/storage-pools/default
+lxd init --auto --storage-backend btrfs
+lxc network create lxdbr0
+lxc network attach-profile lxdbr0 default eth0
+
+curl -sSL \
+  -O https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+chmod +x kubectl
+mv kubectl /usr/local/bin/
+
+curl -sSL \
+  -O https://files.schu.io/pub/cfssl/cfssl-linux-amd64-1.3.2 \
+  -O https://files.schu.io/pub/cfssl/cfssljson-linux-amd64-1.3.2
+
+mv cfssl-linux-amd64-1.3.2 cfssl
+mv cfssljson-linux-amd64-1.3.2 cfssljson
+
+chmod +x cfssl{,json}
+mv cfssl{,json} /usr/local/bin/
+
+ln -s /kubedee/kubedee /usr/local/bin/kubedee
+
+lxc info
+
+df -h
+
+ulimit -n
+
+su - ubuntu
+KUBEDEE_DEBUG=1 /kubedee/tests/smoke-test
+EOF

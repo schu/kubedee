@@ -70,7 +70,7 @@ kubedee::validate_name() {
   local orig_name="${1:-}"
   # We must be fairly strict about names, since they are used
   # for container's hostname
-  if ! echo "${orig_name}" | grep -qE '^[[:alnum:]_-.]{1,50}$'; then
+  if ! echo "${orig_name}" | grep -qE '^[[:alnum:]_.-]{1,50}$'; then
     kubedee::exit_error "Invalid name (only '[[:alnum:]-]{1,50}' allowed): ${orig_name}"
   fi
   # Do some normalization to allow input like 'v1.8.4' while
@@ -624,7 +624,7 @@ kubedee::create_kubeconfig_worker() {
     --user="system:node:${container_name}" \
     --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
+  kubectl -v 10 config use-context default --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 }
 
 # Args:

@@ -182,26 +182,26 @@ main() {
   local args=()
   while [[ $# -gt 0 ]]; do
     case "${1}" in
-      --bin-dir)
-        bin_dir="${2}"
-        shift
-        shift
-        ;;
-      --dir)
-        kubedee_dir="${2}"
-        kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
-        shift
-        shift
-        ;;
-      --num-worker)
-        num_worker="${2}"
-        shift
-        shift
-        ;;
-      *)
-        args+=("${1}")
-        shift
-        ;;
+    --bin-dir)
+      bin_dir="${2}"
+      shift
+      shift
+      ;;
+    --dir)
+      kubedee_dir="${2}"
+      kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
+      shift
+      shift
+      ;;
+    --num-worker)
+      num_worker="${2}"
+      shift
+      shift
+      ;;
+    *)
+      args+=("${1}")
+      shift
+      ;;
     esac
   done
   # shellcheck disable=SC2034
@@ -215,17 +215,17 @@ main() {
   local cmd="${1:-list}"
   shift || true
   case "${cmd}" in
-    create | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | version)
-      "cmd_${cmd}" "$@"
-      ;;
-    up)
-      cmd_create "$@"
-      cmd_start "$@"
-      ;;
-    *)
-      echo "Unknown command: ${cmd}" >&2
-      exit_usage
-      ;;
+  create | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | version)
+    "cmd_${cmd}" "$@"
+    ;;
+  up)
+    cmd_create "$@"
+    cmd_start "$@"
+    ;;
+  *)
+    echo "Unknown command: ${cmd}" >&2
+    exit_usage
+    ;;
   esac
 }
 
