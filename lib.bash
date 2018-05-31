@@ -1136,6 +1136,6 @@ kubedee::smoke_test() {
       sleep 3
     fi
   done
-  kubedee::log_info "Successfully connected to ${deployment_name}"
+  kubedee::log_success "Successfully connected to ${deployment_name}"
   delete_smoke_test
 }

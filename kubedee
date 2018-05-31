@@ -136,7 +136,7 @@ cmd_start-worker() {
   kubedee::prepare_container_image "${cluster_name}"
   kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}"
   kubedee::configure_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}"
-  kubedee::log_info "Node ${cluster_name}-${name_suffix} started"
+  kubedee::log_success "Node ${cluster_name}-${name_suffix} started"
 }
 
 cmd_list() {
