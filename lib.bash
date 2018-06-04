@@ -639,7 +639,7 @@ kubedee::launch_etcd() {
   lxc launch \
     --storage kubedee \
     --network "${network_id}" \
-    --config raw.lxc="lxc.aa_allow_incomplete=1" \
+    --config raw.lxc="lxc.apparmor.allow_incomplete=1" \
     "${kubedee_container_image}" "${container_name}"
 }
 
@@ -881,11 +881,11 @@ kubedee::launch_container() {
   local network_id
   network_id="$(cat "${network_id_file}")"
   read -r -d '' raw_lxc <<RAW_LXC || true
-lxc.aa_profile=unconfined
+lxc.apparmor.profile=unconfined
 lxc.mount.auto=proc:rw sys:rw cgroup:rw
 lxc.cgroup.devices.allow=a
 lxc.cap.drop=
-lxc.aa_allow_incomplete=1
+lxc.apparmor.allow_incomplete=1
 RAW_LXC
   lxc launch \
     --storage kubedee \
@@ -1070,7 +1070,7 @@ kubedee::prepare_container_image() {
   lxc launch \
     --storage kubedee \
     --network "${network_id}" \
-    --config raw.lxc="lxc.aa_allow_incomplete=1" \
+    --config raw.lxc="lxc.apparmor.allow_incomplete=1" \
     "${kubedee_base_image}" "${kubedee_container_image}-setup"
   kubedee::container_wait_running "${kubedee_container_image}-setup"
   cat <<'EOF' | lxc exec "${kubedee_container_image}-setup" bash
