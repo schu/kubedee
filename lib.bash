@@ -62,6 +62,16 @@ readonly kubedee_cni_plugins_version="v0.6.0"
 
 readonly lxd_status_code_running=103
 
+readonly lxc_driver_version="$(lxc info | awk '/[:space:]*driver_version/ {print $2}')"
+if [[ "${lxc_driver_version}" == 2* ]]; then
+  readonly raw_lxc_apparmor_profile="lxc.aa_profile=unconfined"
+  readonly raw_lxc_apparmor_allow_incomplete="lxc.aa_allow_incomplete=1"
+else
+  readonly raw_lxc_apparmor_profile="lxc.apparmor.profile=unconfined"
+  readonly raw_lxc_apparmor_allow_incomplete="lxc.apparmor.allow_incomplete=1"
+fi
+
+
 # Args:
 #   $1 The unvalidated cluster name
 #
@@ -639,7 +649,7 @@ kubedee::launch_etcd() {
   lxc launch \
     --storage kubedee \
     --network "${network_id}" \
-    --config raw.lxc="lxc.aa_allow_incomplete=1" \
+    --config raw.lxc="${raw_lxc_apparmor_allow_incomplete}" \
     "${kubedee_container_image}" "${container_name}"
 }
 
@@ -881,11 +891,11 @@ kubedee::launch_container() {
   local network_id
   network_id="$(cat "${network_id_file}")"
   read -r -d '' raw_lxc <<RAW_LXC || true
-lxc.aa_profile=unconfined
+${raw_lxc_apparmor_profile}
 lxc.mount.auto=proc:rw sys:rw cgroup:rw
 lxc.cgroup.devices.allow=a
 lxc.cap.drop=
-lxc.aa_allow_incomplete=1
+${raw_lxc_apparmor_allow_incomplete}
 RAW_LXC
   lxc launch \
     --storage kubedee \
@@ -1070,7 +1080,7 @@ kubedee::prepare_container_image() {
   lxc launch \
     --storage kubedee \
     --network "${network_id}" \
-    --config raw.lxc="lxc.aa_allow_incomplete=1" \
+    --config raw.lxc="${raw_lxc_apparmor_allow_incomplete}" \
     "${kubedee_base_image}" "${kubedee_container_image}-setup"
   kubedee::container_wait_running "${kubedee_container_image}-setup"
   cat <<'EOF' | lxc exec "${kubedee_container_image}-setup" bash
