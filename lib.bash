@@ -71,7 +71,6 @@ else
   readonly raw_lxc_apparmor_allow_incomplete="lxc.apparmor.allow_incomplete=1"
 fi
 
-
 # Args:
 #   $1 The unvalidated cluster name
 #
@@ -248,10 +247,12 @@ kubedee::k8s_minor_version() {
 #   $1 The validated cluster name
 kubedee::copy_crio_files() {
   local cluster_name="${1}"
-  local crio_version="v1.9.1"
+  local crio_version="v1.11.1"
   local k8s_minor_version
   k8s_minor_version="$(kubedee::k8s_minor_version "${cluster_name}")"
-  if [[ "${k8s_minor_version}" == 10* ]]; then
+  if [[ "${k8s_minor_version}" == 9* ]]; then
+    crio_version="v1.9.1"
+  elif [[ "${k8s_minor_version}" == 10* ]]; then
     crio_version="v1.10.0"
   fi
   kubedee::fetch_crio "${crio_version}"
