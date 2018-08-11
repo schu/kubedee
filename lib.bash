@@ -761,7 +761,6 @@ ExecStart=/usr/local/bin/kube-apiserver \
   --service-account-key-file=/etc/kubernetes/ca-key.pem \
   --service-cluster-ip-range=10.32.0.0/24 \
   --service-node-port-range=30000-32767 \
-  --tls-ca-file=/etc/kubernetes/ca.pem \
   --tls-cert-file=/etc/kubernetes/kubernetes.pem \
   --tls-private-key-file=/etc/kubernetes/kubernetes-key.pem \
   --v=2
