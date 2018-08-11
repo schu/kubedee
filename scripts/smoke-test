@@ -17,7 +17,7 @@ trap 'rm -rf "${tmp_dir}"' EXIT
 if [[ $# -gt 0 ]]; then
   readonly k8s_versions=("$@")
 else
-  readonly k8s_versions=("v1.9.10" "v1.10.6" "v1.11.2")
+  readonly k8s_versions=("v1.9.10" "v1.10.6" "v1.11.2" "v1.12.0-alpha.1")
 fi
 
 readonly kubedee_dir="${tmp_dir}/kubedee"
