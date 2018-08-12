@@ -54,7 +54,7 @@ kubedee::exit_error() {
   return 1
 }
 
-readonly kubedee_base_image="ubuntu:16.04"
+readonly kubedee_base_image="ubuntu:18.04"
 readonly kubedee_container_image="kubedee-container-image-${kubedee_version}"
 readonly kubedee_etcd_version="v3.3.3"
 readonly kubedee_runc_version="v1.0.0-rc5"
