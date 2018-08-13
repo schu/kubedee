@@ -222,6 +222,9 @@ main() {
     cmd_create "$@"
     cmd_start "$@"
     ;;
+  help)
+    exit_usage
+    ;;
   *)
     echo "Unknown command: ${cmd}" >&2
     exit_usage
