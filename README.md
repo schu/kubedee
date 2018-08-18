@@ -38,10 +38,22 @@ have a `kubedee-` prefix.
 
 ### Getting started
 
-First, build the version of k8s that you want to setup (or [download the server
-binaries](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG-1.9.md#server-binaries)).
-By default, kubedee looks for k8s executables in `./_output/bin/`.
-Alternatively, you can point kubedee to a directory with `--bin-dir`.
+First, download or build the version of Kubernetes that you want to
+setup:
+
+To download a release, you can use the [`./scripts/download-k8s-binaries`](scripts/download-k8s-binaries)
+helper script and point kubedee to the directory with `--bin-dir`,
+for example:
+
+```
+./scripts/download-k8s-binaries v1.11.2 /tmp/k8s-v1.11.2
+kubedee up test --bin-dir /tmp/k8s-v1.11.2/kubernetes/server/bin/
+```
+
+To run a local build, kubedee by default looks for k8s executables in
+`./_output/bin/`. That matches the default location after running
+`make` in the Kubernetes repository. For a different location, use
+`--bin-dir` again. Example:
 
 ```
 cd $GOPATH/src/github.com/kubernetes/kubernetes
