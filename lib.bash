@@ -1151,3 +1151,24 @@ kubedee::smoke_test() {
   kubedee::log_success "Successfully connected to ${deployment_name}"
   delete_smoke_test
 }
+
+# Args:
+#   $1 The validated cluster name
+kubedee::configure_kubeconfig() {
+  local cluster_name="${1}"
+  local cluster_context_name="kubedee-${cluster_name}"
+  local cluster_creds_name="${cluster_context_name}-admin"
+  local ip
+  ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
+  [[ -z "${ip}" ]] && kubedee::exit_error "Failed to get IPv4 for kubedee-${cluster_name}-controller"
+  kubectl config set-cluster "${cluster_context_name}" \
+    --certificate-authority="${kubedee_dir}/clusters/${cluster_name}/certificates/ca.pem" \
+    --server="https://${ip}:6443"
+  kubectl config set-credentials "${cluster_creds_name}" \
+    --client-certificate="${kubedee_dir}/clusters/${cluster_name}/certificates/admin.pem" \
+    --client-key="${kubedee_dir}/clusters/${cluster_name}/certificates/admin-key.pem"
+  kubectl config set-context "${cluster_context_name}" \
+    --cluster="${cluster_context_name}" \
+    --user="${cluster_creds_name}"
+  kubectl config use-context "${cluster_context_name}"
+}

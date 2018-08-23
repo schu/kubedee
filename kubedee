@@ -87,6 +87,8 @@ cmd_delete() {
     lxc delete -f "${c}"
   done
   kubedee::delete_network "${cluster_name}"
+  kubectl config unset current-context >/dev/null
+  kubectl config delete-context "kubedee-${cluster_name}" >/dev/null
   rm -rf "${kubedee_dir}/clusters/${cluster_name}"
 }
 
@@ -114,9 +116,9 @@ cmd_start() {
   kubedee::deploy_flannel "${cluster_name}"
   kubedee::deploy_kube_dns "${cluster_name}"
   kubedee::label_and_taint_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
+  kubedee::configure_kubeconfig "${cluster_name}"
   kubedee::log_success "\\nCluster ${cluster_name} started"
-  kubedee::log_success "Run the following command to use kubectl with the new cluster:"
-  kubedee::log_success "\\n\\texport KUBECONFIG=${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig\\n"
+  kubedee::log_success "kubectl config current-context set to kubedee-${cluster_name}\\n"
   kubedee::log_info "Cluster nodes can be accessed with 'lxc exec <name> bash'"
   kubedee::log_info "Cluster files can be found in '${kubedee_dir}/clusters/${cluster_name}'\\n"
   kubedee::log_info "Current component status is (should be healthy):"
