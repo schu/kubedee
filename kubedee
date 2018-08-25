@@ -143,9 +143,7 @@ cmd_start-worker() {
 
 cmd_list() {
   mkdir -p "${kubedee_dir}/clusters/"
-  local cluster_path="${kubedee_dir}/clusters/"
-  find "${cluster_path}" -type f -name admin.kubeconfig -exec echo {} \; |
-    sed -e "s|${cluster_path}||" -e 's|/kubeconfig/admin.kubeconfig||'
+  find "${kubedee_dir}/clusters/" -mindepth 1 -maxdepth 1 -type d -exec basename {} \;
 }
 
 cmd_kubectl-env() {
