@@ -88,7 +88,7 @@ cmd_delete() {
     lxc delete -f "${c}"
   done
   kubedee::delete_network "${cluster_name}"
-  kubectl config unset current-context >/dev/null
+  [[ "${no_set_context}" == "false" ]] && kubectl config unset current-context >/dev/null
   kubectl config delete-context "kubedee-${cluster_name}" &>/dev/null || true
   rm -rf "${kubedee_dir}/clusters/${cluster_name}"
 }
