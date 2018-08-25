@@ -26,7 +26,7 @@ readonly k8s_binaries="${tmp_dir}/k8s-binaries"
 mkdir -p "${k8s_binaries}"
 
 kdee() {
-  kubedee --dir "${kubedee_dir}" "$@"
+  kubedee --no-set-context --dir "${kubedee_dir}" "$@"
 }
 
 for v in "${k8s_versions[@]}"; do
