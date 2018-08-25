@@ -29,6 +29,8 @@ cd ~/bin
 ln -s ~/code/kubedee/kubedee
 ```
 
+That's it!
+
 kubedee stores all data in `~/.local/share/kubedee/...`. kubedee LXD resources
 have a `kubedee-` prefix.
 
@@ -57,7 +59,7 @@ To run a local build, kubedee by default looks for k8s executables in
 
 ```
 cd $GOPATH/src/github.com/kubernetes/kubernetes
-git checkout v1.9.1
+git checkout v1.11.2
 make
 [...]
 ```
@@ -79,30 +81,25 @@ less than 60 seconds for a four node cluster (etcd, controller, 2x worker).
 [...]
 
 Cluster test started
-Run the following command to use kubectl with the new cluster:
-
-        export KUBECONFIG=/home/schu/.local/share/kubedee/clusters/test/kubeconfig/admin.kubeconfig
+kubectl config current-context set to kubedee-test
 
 Cluster nodes can be accessed with 'lxc exec <name> bash'
 Cluster files can be found in '/home/schu/.local/share/kubedee/clusters/test'
 
 Current component status is (should be healthy):
-NAME                 STATUS    MESSAGE              ERROR
+NAME                 STATUS    MESSAGE             ERROR
 scheduler            Healthy   ok
 controller-manager   Healthy   ok
-etcd-0               Healthy   {"health": "true"}
+etcd-0               Healthy   {"health":"true"}
 
 Current node status is (should be ready soon):
-NAME                        STATUS     ROLES     AGE       VERSION
-kubedee-test-worker-i7k3n1   Ready      <none>    11s       v1.9.1
-kubedee-test-worker-lp2cno   NotReady   <none>    6s        v1.9.1
+NAME                         STATUS     ROLES     AGE       VERSION
+kubedee-test-controller      NotReady   master    24s       v1.11.2
+kubedee-test-worker-l1tdqq   NotReady   <none>    16s       v1.11.2
+kubedee-test-worker-tx8q8f   NotReady   <none>    8s        v1.11.2
 ```
 
-Finally, configure the current shell to use the new cluster:
-
-```
-eval $(kubedee kubectl-env test)
-```
+kubectl's current-context has been changed to the new cluster automatically.
 
 ### Cheatsheet
 
