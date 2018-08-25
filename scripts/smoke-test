@@ -12,7 +12,12 @@ done
 readonly dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
 
 readonly tmp_dir="$(mktemp -d "/tmp/kubedee-test-XXXXXX")"
-trap 'rm -rf "${tmp_dir}"' EXIT
+cleanup() {
+  lxc list --format csv --columns n |
+    grep ^kubedee-smoke-test | xargs -r lxc delete -f
+  rm -rf "${tmp_dir}"
+}
+trap cleanup EXIT
 
 if [[ $# -gt 0 ]]; then
   readonly k8s_versions=("$@")
@@ -32,7 +37,7 @@ kdee() {
 for v in "${k8s_versions[@]}"; do
   bin_dir="${k8s_binaries}/${v}"
   "${dir}/download-k8s-binaries" "${v}" "${bin_dir}"
-  cluster_name="test-${v}"
+  cluster_name="smoke-test-${v}"
   kdee up --bin-dir "${bin_dir}/kubernetes/server/bin" "${cluster_name}"
   kdee smoke-test "${cluster_name}"
   kdee delete "${cluster_name}"
