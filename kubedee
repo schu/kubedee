@@ -29,6 +29,7 @@ bin_dir="./_output/bin"
 kubedee_dir="${kubedee_dir:-${HOME}/.local/share/kubedee}"
 kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
 num_worker=2
+no_set_context="false"
 
 # shellcheck source=/dev/null
 source "${kubedee_source_dir}/lib.bash"
@@ -88,7 +89,7 @@ cmd_delete() {
   done
   kubedee::delete_network "${cluster_name}"
   kubectl config unset current-context >/dev/null
-  kubectl config delete-context "kubedee-${cluster_name}" >/dev/null
+  kubectl config delete-context "kubedee-${cluster_name}" &>/dev/null || true
   rm -rf "${kubedee_dir}/clusters/${cluster_name}"
 }
 
@@ -116,7 +117,7 @@ cmd_start() {
   kubedee::deploy_flannel "${cluster_name}"
   kubedee::deploy_kube_dns "${cluster_name}"
   kubedee::label_and_taint_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
-  kubedee::configure_kubeconfig "${cluster_name}"
+  [[ "${no_set_context}" == "false" ]] && kubedee::configure_kubeconfig "${cluster_name}"
   kubedee::log_success "\\nCluster ${cluster_name} started"
   kubedee::log_success "kubectl config current-context set to kubedee-${cluster_name}\\n"
   kubedee::log_info "Cluster nodes can be accessed with 'lxc exec <name> bash'"
@@ -198,6 +199,10 @@ main() {
     --num-worker)
       num_worker="${2}"
       shift
+      shift
+      ;;
+    --no-set-context)
+      no_set_context="true"
       shift
       ;;
     *)
