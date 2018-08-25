@@ -1135,7 +1135,7 @@ kubedee::smoke_test() {
   local now
   now="$(date +%s)"
   local timeout
-  timeout=$((now + 120))
+  timeout=$((now + 180))
   while true; do
     if [[ $(date +%s) -gt ${timeout} ]]; then
       delete_smoke_test
