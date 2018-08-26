@@ -1052,15 +1052,15 @@ kubedee::deploy_kube_dns() {
 
 # Args:
 #   $1 The validated cluster name
-#   $2 The container name
+#   $2 The name of the controller node
 kubedee::label_and_taint_controller() {
   local cluster_name="${1}"
-  local container_name="${2}"
-  kubedee::log_info "Applying labels and taints to ${container_name} ..."
+  local controller_node_name="${2}"
+  kubedee::log_info "Applying labels and taints to ${controller_node_name} ..."
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
-    label node "${container_name}" node-role.kubernetes.io/master=""
+    label node "${controller_node_name}" node-role.kubernetes.io/master=""
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
-    taint node "${container_name}" node-role.kubernetes.io/master=:NoSchedule
+    taint node "${controller_node_name}" node-role.kubernetes.io/master=:NoSchedule
 }
 
 # Args:
