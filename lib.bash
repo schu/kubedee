@@ -836,6 +836,7 @@ kubedee::configure_rbac() {
   local cluster_name="${1}"
   local container_name="kubedee-${cluster_name}-controller"
   kubedee::container_wait_running "${container_name}"
+  kubedee::log_info "Configure RBAC for kube-apiserver -> kubelet requests"
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
 
