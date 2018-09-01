@@ -157,7 +157,7 @@ EOF
 cmd_etcd-env() {
   local cluster_name
   cluster_name="$(kubedee::validate_name "${1}")"
-  local container_name="kubedee-${cluster_name}-etcd"
+  local -r container_name="kubedee-${cluster_name}-etcd"
   local etcd_ip
   etcd_ip="$(kubedee::container_ipv4_address "${container_name}")"
   cat <<EOF
@@ -218,7 +218,7 @@ main() {
   set +u
   set -- "${args[@]}"
   set -u
-  local cmd="${1:-list}"
+  local -r cmd="${1:-list}"
   shift || true
   case "${cmd}" in
   create | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | version)

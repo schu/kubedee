@@ -7,28 +7,28 @@
 #   $kubedee_version The kubedee version, used for the cache
 
 kubedee::log_info() {
-  local message="${1:-""}"
+  local -r message="${1:-""}"
   echo -e "\\033[1;37m${message}\\033[0m"
 }
 
 kubedee::log_success() {
-  local message="${1:-""}"
+  local -r message="${1:-""}"
   echo -e "\\033[1;32m${message}\\033[0m"
 }
 
 kubedee::log_warn() {
-  local message="${1:-""}"
+  local -r message="${1:-""}"
   echo -e "\\033[1;33m${message}\\033[0m" >&2
 }
 
 kubedee::log_error() {
-  local message="${1:-""}"
+  local -r message="${1:-""}"
   echo -e "\\033[1;31m${message}\\033[0m" >&2
 }
 
 kubedee::exit_error() {
-  local message="${1:-""}"
-  local code="${2:-1}"
+  local -r message="${1:-""}"
+  local -r code="${2:-1}"
   kubedee::log_error "${message}"
   exit "${code}"
 }
@@ -76,7 +76,7 @@ fi
 #
 # Return validated name or exit with error
 kubedee::validate_name() {
-  local orig_name="${1:-}"
+  local -r orig_name="${1:-}"
   # We must be fairly strict about names, since they are used
   # for container's hostname
   if ! echo "${orig_name}" | grep -qE '^[[:alnum:]_.-]{1,50}$'; then
@@ -84,7 +84,7 @@ kubedee::validate_name() {
   fi
   # Do some normalization to allow input like 'v1.8.4' while
   # matching host name requirements
-  local name="${orig_name//[._]/-}"
+  local -r name="${orig_name//[._]/-}"
   if [[ "${orig_name}" != "${name}" ]]; then
     kubedee::log_warn "Normalized name '${orig_name}' -> '${name}'"
   fi
@@ -94,14 +94,14 @@ kubedee::validate_name() {
 # Args:
 #   $1 The target directory
 kubedee::cd_or_exit_error() {
-  local target="${1}"
+  local -r target="${1}"
   cd "${target}" || kubedee::exit_error "Failed to cd to ${target}"
 }
 
 # Args:
 #   $1 The validated cluster name
 kubedee::prune_old_caches() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   kubedee::log_info "Pruning old kubedee caches ..."
   for cache_dir in "${kubedee_dir}/cache/"*; do
     if [[ "${cache_dir}" != "${kubedee_cache_dir}" ]]; then
@@ -114,7 +114,7 @@ kubedee::prune_old_caches() {
 #   $1 The target file or directory
 #   $* The source files or directories
 kubedee::copyl_or_exit_error() {
-  local target="${1}"
+  local -r target="${1}"
   shift
   for f in "$@"; do
     if ! cp -l "${f}" "${target}" &>/dev/null; then
@@ -129,7 +129,7 @@ kubedee::copyl_or_exit_error() {
 #   $1 The target file or directory
 #   $* The source files or directories
 kubedee::copy_or_exit_error() {
-  local target="${1}"
+  local -r target="${1}"
   shift
   for f in "$@"; do
     if ! cp "${f}" "${target}"; then
@@ -142,11 +142,11 @@ kubedee::copy_or_exit_error() {
 #   $1 The validated cluster name
 #   $2 The path to the k8s bin directory (optional)
 kubedee::copy_k8s_binaries() {
-  local cluster_name="${1}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
-  local source_dir="${2:-$(pwd)/_output/bin}"
-  local files=(
+  local -r source_dir="${2:-$(pwd)/_output/bin}"
+  local -r files=(
     kube-apiserver
     kube-controller-manager
     kube-proxy
@@ -160,7 +160,7 @@ kubedee::copy_k8s_binaries() {
 }
 
 kubedee::fetch_etcd() {
-  local cache_dir="${kubedee_cache_dir}/etcd/${kubedee_etcd_version}"
+  local -r cache_dir="${kubedee_cache_dir}/etcd/${kubedee_etcd_version}"
   mkdir -p "${cache_dir}"
   [[ -e "${cache_dir}/etcd" && -e "${cache_dir}/etcdctl" ]] && return
   local tmp_dir
@@ -176,8 +176,8 @@ kubedee::fetch_etcd() {
 }
 
 kubedee::fetch_crio() {
-  local version="${1}"
-  local cache_dir="${kubedee_cache_dir}/crio/${version}"
+  local -r version="${1}"
+  local -r cache_dir="${kubedee_cache_dir}/crio/${version}"
   mkdir -p "${cache_dir}"
   [[ -e "${cache_dir}/crio" ]] && return
   local tmp_dir
@@ -193,7 +193,7 @@ kubedee::fetch_crio() {
 }
 
 kubedee::fetch_runc() {
-  local cache_dir="${kubedee_cache_dir}/runc/${kubedee_runc_version}"
+  local -r cache_dir="${kubedee_cache_dir}/runc/${kubedee_runc_version}"
   mkdir -p "${cache_dir}"
   [[ -e "${cache_dir}/runc" ]] && return
   local tmp_dir
@@ -209,7 +209,7 @@ kubedee::fetch_runc() {
 }
 
 kubedee::fetch_cni_plugins() {
-  local cache_dir="${kubedee_cache_dir}/cni-plugins/${kubedee_cni_plugins_version}"
+  local -r cache_dir="${kubedee_cache_dir}/cni-plugins/${kubedee_cni_plugins_version}"
   mkdir -p "${cache_dir}"
   [[ -e "${cache_dir}/flannel" ]] && return
   local tmp_dir
@@ -228,10 +228,10 @@ kubedee::fetch_cni_plugins() {
 # Args:
 #   $1 The validated cluster name
 kubedee::copy_etcd_binaries() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   kubedee::fetch_etcd
-  local cache_dir="${kubedee_cache_dir}/etcd/${kubedee_etcd_version}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
+  local -r cache_dir="${kubedee_cache_dir}/etcd/${kubedee_etcd_version}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{etcd,etcdctl}
 }
@@ -239,15 +239,15 @@ kubedee::copy_etcd_binaries() {
 # Args:
 #   $1 The validated cluster name
 kubedee::k8s_minor_version() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   "${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kubectl" version --client -o json | jq -r .clientVersion.minor
 }
 
 # Args:
 #   $1 The validated cluster name
 kubedee::copy_crio_files() {
-  local cluster_name="${1}"
-  local crio_version="v1.11.2"
+  local -r cluster_name="${1}"
+  local -r crio_version="v1.11.2"
   local k8s_minor_version
   k8s_minor_version="$(kubedee::k8s_minor_version "${cluster_name}")"
   if [[ "${k8s_minor_version}" == 9* ]]; then
@@ -256,14 +256,14 @@ kubedee::copy_crio_files() {
     crio_version="v1.10.0"
   fi
   kubedee::fetch_crio "${crio_version}"
-  local cache_dir="${kubedee_cache_dir}/crio/${crio_version}"
+  local -r cache_dir="${kubedee_cache_dir}/crio/${crio_version}"
   local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/crio"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/libexec/crio"
+  target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/libexec/crio"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{pause,conmon}
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio"
+  target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio"
   mkdir -p "${target_dir}/"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{seccomp.json,crio.conf,crictl.yaml,crio-umount.conf,policy.json}
 }
@@ -271,10 +271,10 @@ kubedee::copy_crio_files() {
 # Args:
 #   $1 The validated cluster name
 kubedee::copy_runc_binaries() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   kubedee::fetch_runc
-  local cache_dir="${kubedee_cache_dir}/runc/${kubedee_runc_version}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
+  local -r cache_dir="${kubedee_cache_dir}/runc/${kubedee_runc_version}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/runc"
 }
@@ -282,10 +282,10 @@ kubedee::copy_runc_binaries() {
 # Args:
 #   $1 The validated cluster name
 kubedee::copy_cni_plugins() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   kubedee::fetch_cni_plugins
-  local cache_dir="${kubedee_cache_dir}/cni-plugins/${kubedee_cni_plugins_version}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/opt/cni/bin"
+  local -r cache_dir="${kubedee_cache_dir}/cni-plugins/${kubedee_cni_plugins_version}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/opt/cni/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"*
 }
@@ -293,9 +293,9 @@ kubedee::copy_cni_plugins() {
 # Args:
 #   $1 The validated cluster name
 kubedee::create_network() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   mkdir -p "${kubedee_dir}/clusters/${cluster_name}"
-  local network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
+  local -r network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
   local network_id
   if [[ -e "${network_id_file}" ]]; then
     network_id="$(cat "${network_id_file}")"
@@ -311,8 +311,8 @@ kubedee::create_network() {
 # Args:
 #   $1 The validated cluster name
 kubedee::delete_network() {
-  local cluster_name="${1}"
-  local network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
+  local -r cluster_name="${1}"
+  local -r network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
   [[ -f "${network_id_file}" ]] || {
     kubedee::log_warn "${network_id_file} doesn't exist"
     return
@@ -329,8 +329,8 @@ kubedee::delete_network() {
 #   $1 The storage pool name (optional)
 #   $2 The storage pool driver (optional)
 kubedee::create_storage_pool() {
-  local cluster_name="${1:-kubedee}"
-  local driver="${2:-btrfs}"
+  local -r cluster_name="${1:-kubedee}"
+  local -r driver="${2:-btrfs}"
   if ! lxc storage show "${cluster_name}" &>/dev/null; then
     lxc storage create "${cluster_name}" "${driver}"
   fi
@@ -339,21 +339,21 @@ kubedee::create_storage_pool() {
 # Args:
 #   $1 The full container name
 kubedee::container_status_code() {
-  local container_name="${1}"
+  local -r container_name="${1}"
   lxc list --format json | jq -r ".[] | select(.name == \"${container_name}\").state.status_code"
 }
 
 # Args:
 #   $1 The full container name
 kubedee::container_ipv4_address() {
-  local container_name="${1}"
+  local -r container_name="${1}"
   lxc list --format json | jq -r ".[] | select(.name == \"${container_name}\").state.network.eth0.addresses[] | select(.family == \"inet\").address"
 }
 
 # Args:
 #   $1 The full container name
 kubedee::container_wait_running() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   until [[ "$(kubedee::container_status_code "${cluster_name}")" -eq ${lxd_status_code_running} ]]; do
     kubedee::log_info "Waiting for ${cluster_name} to reach state running ..."
     sleep 3
@@ -367,8 +367,8 @@ kubedee::container_wait_running() {
 # Args:
 #   $1 The validated cluster name
 kubedee::create_certificate_authority() {
-  local cluster_name="${1}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
   mkdir -p "${target_dir}"
   (
     kubedee::cd_or_exit_error "${target_dir}"
@@ -412,8 +412,8 @@ EOF
 # Args:
 #   $1 The validated cluster name
 kubedee::create_certificate_admin() {
-  local cluster_name="${1}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
   mkdir -p "${target_dir}"
   (
     kubedee::cd_or_exit_error "${target_dir}"
@@ -442,8 +442,8 @@ EOF
 # Args:
 #   $1 The validated cluster name
 kubedee::create_certificate_etcd() {
-  local cluster_name="${1}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
   local ip
   ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-etcd")"
   [[ -z "${ip}" ]] && kubedee::exit_error "Failed to get IPv4 for kubedee-${cluster_name}-etcd"
@@ -475,8 +475,8 @@ EOF
 # Args:
 #   $1 The validated cluster name
 kubedee::create_certificate_kubernetes() {
-  local cluster_name="${1}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
   local ip
   ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   [[ -z "${ip}" ]] && kubedee::exit_error "Failed to get IPv4 for kubedee-${cluster_name}-controller"
@@ -527,9 +527,9 @@ EOF
 #   $1 The validated cluster name
 #   $2 The container name
 kubedee::create_certificate_worker() {
-  local cluster_name="${1}"
-  local container_name="${2}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  local -r cluster_name="${1}"
+  local -r container_name="${2}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
   local ip
   ip="$(kubedee::container_ipv4_address "${container_name}")"
   [[ -z "${ip}" ]] && kubedee::exit_error "Failed to get IPv4 for ${container_name}"
@@ -561,8 +561,8 @@ EOF
 # Args:
 #   $1 The validated cluster name
 kubedee::create_kubeconfig_admin() {
-  local cluster_name="${1}"
-  local cluster_dir="${kubedee_dir}/clusters/${cluster_name}"
+  local -r cluster_name="${1}"
+  local -r cluster_dir="${kubedee_dir}/clusters/${cluster_name}"
   local controller_ip
   controller_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   mkdir -p "${cluster_dir}/kubeconfig"
@@ -590,9 +590,9 @@ kubedee::create_kubeconfig_admin() {
 #   $1 The validated cluster name
 #   $2 The container name
 kubedee::create_kubeconfig_worker() {
-  local cluster_name="${1}"
-  local container_name="${2}"
-  local cluster_dir="${kubedee_dir}/clusters/${cluster_name}"
+  local -r cluster_name="${1}"
+  local -r container_name="${2}"
+  local -r cluster_dir="${kubedee_dir}/clusters/${cluster_name}"
   local controller_ip
   controller_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   mkdir -p "${cluster_dir}/kubeconfig"
@@ -641,9 +641,9 @@ kubedee::create_kubeconfig_worker() {
 # Args:
 #   $1 The validated cluster name
 kubedee::launch_etcd() {
-  local cluster_name="${1}"
-  local container_name="kubedee-${cluster_name}-etcd"
-  local network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
+  local -r cluster_name="${1}"
+  local -r container_name="kubedee-${cluster_name}-etcd"
+  local -r network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
   local network_id
   network_id="$(cat "${network_id_file}")"
   lxc info "${container_name}" &>/dev/null && return
@@ -657,8 +657,8 @@ kubedee::launch_etcd() {
 # Args:
 #   $1 The validated cluster name
 kubedee::configure_etcd() {
-  local cluster_name="${1}"
-  local container_name="kubedee-${cluster_name}-etcd"
+  local -r cluster_name="${1}"
+  local -r container_name="kubedee-${cluster_name}-etcd"
   kubedee::container_wait_running "${container_name}"
   kubedee::create_certificate_etcd "${cluster_name}"
   local ip
@@ -712,8 +712,8 @@ EOF
 # Args:
 #   $1 The validated cluster name
 kubedee::configure_controller() {
-  local cluster_name="${1}"
-  local container_name="${2}"
+  local -r cluster_name="${1}"
+  local -r container_name="${2}"
   local etcd_ip
   etcd_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-etcd")"
   kubedee::container_wait_running "${container_name}"
@@ -833,8 +833,8 @@ EOF
 # Args:
 #   $1 The validated cluster name
 kubedee::configure_rbac() {
-  local cluster_name="${1}"
-  local container_name="kubedee-${cluster_name}-controller"
+  local -r cluster_name="${1}"
+  local -r container_name="kubedee-${cluster_name}-controller"
   kubedee::container_wait_running "${container_name}"
   kubedee::log_info "Configure RBAC for kube-apiserver -> kubelet requests"
   cat <<EOF | lxc exec "${container_name}" bash
@@ -885,10 +885,10 @@ EOF
 #   $1 The validated cluster name
 #   $2 The container name
 kubedee::launch_container() {
-  local cluster_name="${1}"
-  local container_name="${2}"
+  local -r cluster_name="${1}"
+  local -r container_name="${2}"
   lxc info "${container_name}" &>/dev/null && return
-  local network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
+  local -r network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
   local network_id
   network_id="$(cat "${network_id_file}")"
   read -r -d '' raw_lxc <<RAW_LXC || true
@@ -913,8 +913,8 @@ RAW_LXC
 #   $1 The validated cluster name
 #   $2 The container name
 kubedee::configure_worker() {
-  local cluster_name="${1}"
-  local container_name="${2}"
+  local -r cluster_name="${1}"
+  local -r container_name="${2}"
   kubedee::container_wait_running "${container_name}"
   kubedee::create_certificate_worker "${cluster_name}" "${container_name}"
   kubedee::create_kubeconfig_worker "${cluster_name}" "${container_name}"
@@ -1034,7 +1034,7 @@ EOF
 # Args:
 #   $1 The validated cluster name
 kubedee::deploy_flannel() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   kubedee::log_info "Deploying flannel ..."
   readonly flannel_manifest="${kubedee_source_dir}/manifests/kube-flannel.yml"
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
@@ -1044,7 +1044,7 @@ kubedee::deploy_flannel() {
 # Args:
 #   $1 The validated cluster name
 kubedee::deploy_kube_dns() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   kubedee::log_info "Deploying kube-dns ..."
   readonly dns_manifest="${kubedee_source_dir}/manifests/kube-dns.yml"
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
@@ -1055,8 +1055,8 @@ kubedee::deploy_kube_dns() {
 #   $1 The validated cluster name
 #   $2 The name of the controller node
 kubedee::label_and_taint_controller() {
-  local cluster_name="${1}"
-  local controller_node_name="${2}"
+  local -r cluster_name="${1}"
+  local -r controller_node_name="${2}"
   kubedee::log_info "Applying labels and taints to ${controller_node_name} ..."
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     label node "${controller_node_name}" node-role.kubernetes.io/master=""
@@ -1067,7 +1067,7 @@ kubedee::label_and_taint_controller() {
 # Args:
 #   $1 The validated cluster name
 kubedee::prepare_container_image() {
-  local cluster_name="${1}"
+  local -r cluster_name="${1}"
   kubedee::log_info "Pruning old kubedee container images ..."
   for c in $(lxc image list --format json | jq -r '.[].aliases[].name'); do
     if [[ "${c}" == "kubedee-container-image-"* ]] && ! [[ "${c}" == "${kubedee_container_image}" ]]; then
@@ -1077,7 +1077,7 @@ kubedee::prepare_container_image() {
   lxc image info "${kubedee_container_image}" &>/dev/null && return
   kubedee::log_info "Preparing kubedee container image ..."
   lxc delete -f "${kubedee_container_image}-setup" &>/dev/null || true
-  local network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
+  local -r network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
   local network_id
   network_id="$(cat "${network_id_file}")"
   lxc launch \
@@ -1104,11 +1104,11 @@ EOF
 # Args:
 #   $1 The validated cluster name
 kubedee::smoke_test() {
-  local cluster_name="${1}"
-  local kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
+  local -r cluster_name="${1}"
+  local -r kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
   local deployment_suffix
   deployment_suffix="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6 || true)"
-  local deployment_name="kubedee-smoke-test-${cluster_name}-${deployment_suffix}"
+  local -r deployment_name="kubedee-smoke-test-${cluster_name}-${deployment_suffix}"
   kubedee::log_info "Running smoke test for cluster ${cluster_name} ..."
   kubectl --kubeconfig "${kubeconfig}" run "${deployment_name}" --image=nginx --replicas=3
   kubectl --kubeconfig "${kubeconfig}" expose deployment "${deployment_name}" --target-port=80 --port=8080 --type=NodePort
@@ -1156,9 +1156,9 @@ kubedee::smoke_test() {
 # Args:
 #   $1 The validated cluster name
 kubedee::configure_kubeconfig() {
-  local cluster_name="${1}"
-  local cluster_context_name="kubedee-${cluster_name}"
-  local cluster_creds_name="${cluster_context_name}-admin"
+  local -r cluster_name="${1}"
+  local -r cluster_context_name="kubedee-${cluster_name}"
+  local -r cluster_creds_name="${cluster_context_name}-admin"
   local ip
   ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   [[ -z "${ip}" ]] && kubedee::exit_error "Failed to get IPv4 for kubedee-${cluster_name}-controller"
