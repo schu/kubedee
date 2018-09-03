@@ -254,6 +254,10 @@ spec:
       hostNetwork: true
       nodeSelector:
         ingress-nginx: ""
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
       serviceAccountName: nginx-ingress-serviceaccount
       containers:
         - name: nginx-ingress-controller
