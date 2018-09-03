@@ -28,3 +28,16 @@ spec:
   - protocol: TCP
     port: 8080
     targetPort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: nginx
+spec:
+  rules:
+  - host: nginx.demo
+    http:
+      paths:
+      - backend:
+          serviceName: nginx
+          servicePort: 80
