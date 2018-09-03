@@ -1061,6 +1061,8 @@ kubedee::label_and_taint_controller() {
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     label node "${controller_node_name}" node-role.kubernetes.io/master=""
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    label node "${controller_node_name}" ingress-nginx=""
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     taint node "${controller_node_name}" node-role.kubernetes.io/master=:NoSchedule
 }
 
