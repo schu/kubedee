@@ -42,16 +42,17 @@ exit_usage() {
   cat >&2 <<USAGE
 kubedee - ${kubedee_version}
 Usage:
-  kubedee [options] create <cluster name>         create a cluster
-  kubedee [options] delete <cluster name>         delete a cluster
-  kubedee [options] etcd-env <cluster name>       print etcdctl environment variables
-  kubedee [options] kubectl-env <cluster name>    print kubectl environment variables
-  kubedee [options] list                          list all clusters
-  kubedee [options] smoke-test <cluster name>     smoke test a cluster
-  kubedee [options] start <cluster name>          start a new cluster
-  kubedee [options] start-worker <cluster name>   start a new worker node in a cluster
-  kubedee [options] up <cluster name>             create + start in one command
-  kubedee [options] version                       print kubedee version and exit
+  kubedee [options] controller-ip <cluster name>   print the IPv4 address of the controller node
+  kubedee [options] create <cluster name>          create a cluster
+  kubedee [options] delete <cluster name>          delete a cluster
+  kubedee [options] etcd-env <cluster name>        print etcdctl environment variables
+  kubedee [options] kubectl-env <cluster name>     print kubectl environment variables
+  kubedee [options] list                           list all clusters
+  kubedee [options] smoke-test <cluster name>      smoke test a cluster
+  kubedee [options] start <cluster name>           start a new cluster
+  kubedee [options] start-worker <cluster name>    start a new worker node in a cluster
+  kubedee [options] up <cluster name>              create + start in one command
+  kubedee [options] version                        print kubedee version and exit
 
 Options:
   --bin-dir <dir>      where to copy the k8s binaries from (default: ./_output/bin)
@@ -180,6 +181,14 @@ cmd_version() {
   echo "${kubedee_version}"
 }
 
+cmd_controller-ip() {
+  local cluster_name
+  cluster_name="$(kubedee::validate_name "${1}")"
+  local ip
+  ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
+  echo "${ip}"
+}
+
 main() {
   local args=()
   while [[ $# -gt 0 ]]; do
@@ -221,7 +230,7 @@ main() {
   local -r cmd="${1:-list}"
   shift || true
   case "${cmd}" in
-  create | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | version)
+  controller-ip | create | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | version)
     "cmd_${cmd}" "$@"
     ;;
   up)
