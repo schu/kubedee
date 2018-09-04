@@ -49,7 +49,7 @@ Usage:
   kubedee [options] kubectl-env <cluster name>     print kubectl environment variables
   kubedee [options] list                           list all clusters
   kubedee [options] smoke-test <cluster name>      smoke test a cluster
-  kubedee [options] start <cluster name>           start a new cluster
+  kubedee [options] start <cluster name>           start a cluster
   kubedee [options] start-worker <cluster name>    start a new worker node in a cluster
   kubedee [options] up <cluster name>              create + start in one command
   kubedee [options] version                        print kubedee version and exit
