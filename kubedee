@@ -22,7 +22,11 @@ fi
 
 readonly kubedee_version="$(
   cd "${kubedee_source_dir}"
-  git describe --tags --always --dirty
+  if git rev-parse --git-dir &>/dev/null; then
+    git describe --tags --always --dirty
+  else
+    echo "dev"
+  fi
 )"
 
 bin_dir="./_output/bin"
