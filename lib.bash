@@ -576,6 +576,7 @@ kubedee::create_kubeconfig_admin() {
   kubectl config set-credentials admin \
     --client-certificate="${cluster_dir}/certificates/admin.pem" \
     --client-key="${cluster_dir}/certificates/admin-key.pem" \
+    --embed-certs=true \
     --kubeconfig="${cluster_dir}/kubeconfig/admin.kubeconfig"
 
   kubectl config set-context default \
