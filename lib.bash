@@ -833,10 +833,22 @@ EOF
 
 # Args:
 #   $1 The validated cluster name
-kubedee::configure_rbac() {
+kubedee::apiserver_wait_running() {
   local -r cluster_name="${1}"
   local -r container_name="kubedee-${cluster_name}-controller"
   kubedee::container_wait_running "${container_name}"
+  until lxc exec "${container_name}" -- curl --ipv4 --fail --silent --max-time 3 "http://127.0.0.1:8080/api" &>/dev/null; do
+    kubedee::log_info "Waiting for kube-apiserver to become ready ..."
+    sleep 3
+  done
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::configure_rbac() {
+  local -r cluster_name="${1}"
+  local -r container_name="kubedee-${cluster_name}-controller"
+  kubedee::apiserver_wait_running "${cluster_name}"
   kubedee::log_info "Configure RBAC for kube-apiserver -> kubelet requests"
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
