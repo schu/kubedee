@@ -74,7 +74,7 @@ resource "hcloud_server" "test" {
 
       # Create cluster
       "./kubedee/scripts/download-k8s-binaries v1.11.2 k8s-binaries",
-      "./bin/kubedee up --apiserver-extra-hostnames ${hcloud_server.test.name} --bin-dir ./k8s-binaries/kubernetes/server/bin/ test",
+      "./bin/kubedee up --apiserver-extra-hostnames '${hcloud_server.test.name},${hcloud_server.test.ipv4_address}' --bin-dir ./k8s-binaries/kubernetes/server/bin/ test",
 
       # Setup ingress
       "kubectl apply -f kubedee/manifests/ingress-nginx.yml",
@@ -86,5 +86,9 @@ resource "hcloud_server" "test" {
       # Make apiserver accessible
       "sudo iptables -t nat -A PREROUTING -p tcp -d ${hcloud_server.test.ipv4_address} --dport 6443 -j DNAT --to-destination $(./bin/kubedee controller-ip test):6443",
     ]
+  }
+
+  provisioner "local-exec" {
+    command = "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${hcloud_server.test.ipv4_address}:~/.local/share/kubedee/clusters/test/kubeconfig/admin.kubeconfig . && sed -i -e 's|server:.*|server: https://${hcloud_server.test.ipv4_address}:6443|' admin.kubeconfig"
   }
 }
