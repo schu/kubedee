@@ -474,9 +474,14 @@ EOF
 
 # Args:
 #   $1 The validated cluster name
+#   $2 Additional X509v3 Subject Alternative Name to set, comma separated (optional)
 kubedee::create_certificate_kubernetes() {
   local -r cluster_name="${1}"
+  local apiserver_extra_hostnames="${2:-}"
+  [[ -n "${apiserver_extra_hostnames}" ]] && apiserver_extra_hostnames="${apiserver_extra_hostnames/#/,}"
   local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  local -r container_name="kubedee-${cluster_name}-controller"
+  kubedee::container_wait_running "${container_name}"
   local ip
   ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   [[ -z "${ip}" ]] && kubedee::exit_error "Failed to get IPv4 for kubedee-${cluster_name}-controller"
@@ -484,7 +489,7 @@ kubedee::create_certificate_kubernetes() {
   (
     kubedee::cd_or_exit_error "${target_dir}"
     kubedee::log_info "Generate controller certificate ..."
-    cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes -hostname="10.32.0.1,${ip},127.0.0.1" - | cfssljson -bare kubernetes
+    cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes -hostname="10.32.0.1,${ip},127.0.0.1${apiserver_extra_hostnames}" - | cfssljson -bare kubernetes
 {
   "CN": "kubernetes",
   "key": {
@@ -718,7 +723,6 @@ kubedee::configure_controller() {
   local etcd_ip
   etcd_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-etcd")"
   kubedee::container_wait_running "${container_name}"
-  kubedee::create_certificate_kubernetes "${cluster_name}"
   local ip
   ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   kubedee::log_info "Providing files to ${container_name} ..."

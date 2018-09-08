@@ -29,11 +29,13 @@ readonly kubedee_version="$(
   fi
 )"
 
+# Option defaults
+apiserver_extra_hostnames=""
 bin_dir="./_output/bin"
 kubedee_dir="${kubedee_dir:-${HOME}/.local/share/kubedee}"
 kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
-num_worker=2
 no_set_context="false"
+num_worker=2
 
 # shellcheck source=/dev/null
 source "${kubedee_source_dir}/lib.bash"
@@ -59,8 +61,9 @@ Usage:
   kubedee [options] version                        print kubedee version and exit
 
 Options:
-  --bin-dir <dir>      where to copy the k8s binaries from (default: ./_output/bin)
-  --num-worker <num>   number of worker nodes to start (default: 2)
+  --apiserver-extra-hostnames <hostname>[,<hostname>]   additional X509v3 Subject Alternative Name to set, comma separated
+  --bin-dir <dir>                                       where to copy the k8s binaries from (default: ./_output/bin)
+  --num-worker <num>                                    number of worker nodes to start (default: 2)
 USAGE
   exit 1
 }
@@ -112,6 +115,7 @@ cmd_start() {
     kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
   done
   kubedee::configure_etcd "${cluster_name}"
+  kubedee::create_certificate_kubernetes "${cluster_name}" "${apiserver_extra_hostnames}"
   kubedee::configure_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
   for ((i = 0; i < num_worker; i++)); do
     kubedee::configure_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
@@ -197,6 +201,11 @@ main() {
   local args=()
   while [[ $# -gt 0 ]]; do
     case "${1}" in
+    --apiserver-extra-hostnames)
+      apiserver_extra_hostnames="${2}"
+      shift
+      shift
+      ;;
     --bin-dir)
       bin_dir="${2}"
       shift
