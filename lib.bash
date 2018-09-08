@@ -723,8 +723,6 @@ kubedee::configure_controller() {
   local etcd_ip
   etcd_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-etcd")"
   kubedee::container_wait_running "${container_name}"
-  local ip
-  ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   kubedee::log_info "Providing files to ${container_name} ..."
 
   lxc config device add "${container_name}" binary-kube-apiserver disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kube-apiserver" path="/usr/local/bin/kube-apiserver"
@@ -758,7 +756,7 @@ ExecStart=/usr/local/bin/kube-apiserver \
   --etcd-keyfile=/etc/kubernetes/kubernetes-key.pem \
   --etcd-servers=https://${etcd_ip}:2379 \
   --event-ttl=1h \
-  --insecure-bind-address=0.0.0.0 \
+  --insecure-bind-address=127.0.0.1 \
   --kubelet-certificate-authority=/etc/kubernetes/ca.pem \
   --kubelet-client-certificate=/etc/kubernetes/kubernetes.pem \
   --kubelet-client-key=/etc/kubernetes/kubernetes-key.pem \
@@ -791,7 +789,7 @@ ExecStart=/usr/local/bin/kube-controller-manager \
   --cluster-signing-cert-file=/etc/kubernetes/ca.pem \
   --cluster-signing-key-file=/etc/kubernetes/ca-key.pem \
   --leader-elect=true \
-  --master=http://${ip}:8080 \
+  --master=http://127.0.0.1:8080 \
   --root-ca-file=/etc/kubernetes/ca.pem \
   --service-account-private-key-file=/etc/kubernetes/ca-key.pem \
   --service-cluster-ip-range=10.32.0.0/24 \
@@ -810,7 +808,7 @@ Description=Kubernetes Scheduler
 [Service]
 ExecStart=/usr/local/bin/kube-scheduler \
   --leader-elect=true \
-  --master=http://${ip}:8080 \
+  --master=http://127.0.0.1:8080 \
   --v=2
 Restart=on-failure
 RestartSec=5
