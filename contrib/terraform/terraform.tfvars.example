@@ -1,0 +1,5 @@
+hcloud_token = "<YOUR HETZNER CLOUD TOKEN>"
+
+hcloud_sshkeys = [
+  "<NAME OF YOUR SSH KEY>",
+]
