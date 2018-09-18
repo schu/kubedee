@@ -76,7 +76,7 @@ cmd_create() {
   kubedee::create_storage_pool
   kubedee::prune_old_caches "${cluster_name}"
   kubedee::prepare_container_image "${cluster_name}"
-  kubedee::log_info "Create new cluster ${cluster_name} ..."
+  kubedee::log_info "Creating new cluster ${cluster_name} ..."
   kubedee::copy_k8s_binaries "${cluster_name}" "${bin_dir}"
   kubedee::copy_etcd_binaries "${cluster_name}"
   kubedee::copy_crio_files "${cluster_name}"
@@ -90,7 +90,7 @@ cmd_delete() {
   local cluster_name
   cluster_name="$(kubedee::validate_name "${1}")"
   [[ ! -d "${kubedee_dir}/clusters/${cluster_name}" ]] && kubedee::exit_error "Found no existing cluster with name: ${cluster_name}"
-  kubedee::log_info "Delete cluster ${cluster_name} ..."
+  kubedee::log_info "Deleting cluster ${cluster_name} ..."
   for c in $(lxc list --format json | jq -r '.[].name'); do
     [[ "${c}" == "kubedee-${cluster_name}-"* ]] && lxc delete -f "${c}"
   done
@@ -108,7 +108,7 @@ cmd_start() {
   for ((i = 0; i < num_worker; i++)); do
     worker_suffixes[${i}]="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6 || true)"
   done
-  kubedee::log_info "Start cluster ${cluster_name} ..."
+  kubedee::log_info "Starting cluster ${cluster_name} ..."
   kubedee::launch_etcd "${cluster_name}"
   kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-controller"
   for ((i = 0; i < num_worker; i++)); do

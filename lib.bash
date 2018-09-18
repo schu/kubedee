@@ -167,7 +167,7 @@ kubedee::fetch_etcd() {
   tmp_dir="$(mktemp -d /tmp/kubedee-XXXXXX)"
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
-    kubedee::log_info "Fetch etcd ${kubedee_etcd_version} ..."
+    kubedee::log_info "Fetching etcd ${kubedee_etcd_version} ..."
     curl -fsSL -O "https://github.com/coreos/etcd/releases/download/${kubedee_etcd_version}/etcd-${kubedee_etcd_version}-linux-amd64.tar.gz"
     tar -xf "etcd-${kubedee_etcd_version}-linux-amd64.tar.gz" --strip-components 1
     kubedee::copyl_or_exit_error "${cache_dir}/" etcd etcdctl
@@ -184,7 +184,7 @@ kubedee::fetch_crio() {
   tmp_dir="$(mktemp -d /tmp/kubedee-XXXXXX)"
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
-    kubedee::log_info "Fetch crio ${version} ..."
+    kubedee::log_info "Fetching crio ${version} ..."
     curl -fsSL -O "https://files.schu.io/pub/cri-o/crio-amd64-${version}.tar.gz"
     tar -xf "crio-amd64-${version}.tar.gz"
     kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pause seccomp.json crio.conf crictl.yaml crio-umount.conf policy.json
@@ -200,7 +200,7 @@ kubedee::fetch_runc() {
   tmp_dir="$(mktemp -d /tmp/kubedee-XXXXXX)"
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
-    kubedee::log_info "Fetch runc ${kubedee_runc_version} ..."
+    kubedee::log_info "Fetching runc ${kubedee_runc_version} ..."
     curl -fsSL -O "https://github.com/opencontainers/runc/releases/download/${kubedee_runc_version}/runc.amd64"
     chmod +x runc.amd64
     kubedee::copyl_or_exit_error "${cache_dir}/runc" runc.amd64
@@ -216,7 +216,7 @@ kubedee::fetch_cni_plugins() {
   tmp_dir="$(mktemp -d /tmp/kubedee-XXXXXX)"
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
-    kubedee::log_info "Fetch cni plugins ${kubedee_cni_plugins_version} ..."
+    kubedee::log_info "Fetching cni plugins ${kubedee_cni_plugins_version} ..."
     curl -fsSL -O "https://github.com/containernetworking/plugins/releases/download/${kubedee_cni_plugins_version}/cni-plugins-amd64-${kubedee_cni_plugins_version}.tgz"
     tar -xf "cni-plugins-amd64-${kubedee_cni_plugins_version}.tgz"
     rm -rf "cni-plugins-amd64-${kubedee_cni_plugins_version}.tgz"
@@ -372,7 +372,7 @@ kubedee::create_certificate_authority() {
   mkdir -p "${target_dir}"
   (
     kubedee::cd_or_exit_error "${target_dir}"
-    kubedee::log_info "Generate certificate authority ..."
+    kubedee::log_info "Generating certificate authority ..."
     cat <<EOF | cfssl gencert -initca - | cfssljson -bare ca
 {
   "CN": "Kubernetes",
@@ -417,7 +417,7 @@ kubedee::create_certificate_admin() {
   mkdir -p "${target_dir}"
   (
     kubedee::cd_or_exit_error "${target_dir}"
-    kubedee::log_info "Generate admin certificate ..."
+    kubedee::log_info "Generating admin certificate ..."
     cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes - | cfssljson -bare admin
 {
   "CN": "admin",
@@ -450,7 +450,7 @@ kubedee::create_certificate_etcd() {
   mkdir -p "${target_dir}"
   (
     kubedee::cd_or_exit_error "${target_dir}"
-    kubedee::log_info "Generate etcd certificate ..."
+    kubedee::log_info "Generating etcd certificate ..."
     cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes -hostname="${ip},127.0.0.1" - | cfssljson -bare etcd
 {
   "CN": "etcd",
@@ -488,7 +488,7 @@ kubedee::create_certificate_kubernetes() {
   mkdir -p "${target_dir}"
   (
     kubedee::cd_or_exit_error "${target_dir}"
-    kubedee::log_info "Generate controller certificate ..."
+    kubedee::log_info "Generating controller certificate ..."
     cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes -hostname="10.32.0.1,${ip},127.0.0.1${apiserver_extra_hostnames}" - | cfssljson -bare kubernetes
 {
   "CN": "kubernetes",
@@ -541,7 +541,7 @@ kubedee::create_certificate_worker() {
   mkdir -p "${target_dir}"
   (
     kubedee::cd_or_exit_error "${target_dir}"
-    kubedee::log_info "Generate ${container_name} certificate ..."
+    kubedee::log_info "Generating ${container_name} certificate ..."
     cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes -hostname="${ip},${container_name}" - | cfssljson -bare "${container_name}"
 {
   "CN": "system:node:${container_name}",
@@ -603,7 +603,7 @@ kubedee::create_kubeconfig_worker() {
   controller_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   mkdir -p "${cluster_dir}/kubeconfig"
 
-  kubedee::log_info "Generate ${container_name} kubeconfig ..."
+  kubedee::log_info "Generating ${container_name} kubeconfig ..."
 
   kubectl config set-cluster kubedee \
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
@@ -851,7 +851,7 @@ kubedee::configure_rbac() {
   local -r cluster_name="${1}"
   local -r container_name="kubedee-${cluster_name}-controller"
   kubedee::apiserver_wait_running "${cluster_name}"
-  kubedee::log_info "Configure RBAC for kube-apiserver -> kubelet requests"
+  kubedee::log_info "Configuring RBAC for kube-apiserver -> kubelet requests"
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
 
