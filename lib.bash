@@ -247,7 +247,7 @@ kubedee::k8s_minor_version() {
 #   $1 The validated cluster name
 kubedee::copy_crio_files() {
   local -r cluster_name="${1}"
-  local -r crio_version="v1.11.2"
+  local crio_version="v1.11.2"
   local k8s_minor_version
   k8s_minor_version="$(kubedee::k8s_minor_version "${cluster_name}")"
   if [[ "${k8s_minor_version}" == 9* ]]; then
