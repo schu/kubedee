@@ -679,28 +679,28 @@ kubedee::configure_etcd() {
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
-cat >/etc/systemd/system/etcd.service <<ETCD_UNIT
+cat >/etc/systemd/system/etcd.service <<'ETCD_UNIT'
 [Unit]
 Description=etcd
 
 [Service]
-ExecStart=/usr/local/bin/etcd \
-  --name ${container_name} \
-  --cert-file=/etc/etcd/etcd.pem \
-  --key-file=/etc/etcd/etcd-key.pem \
-  --peer-cert-file=/etc/etcd/etcd.pem \
-  --peer-key-file=/etc/etcd/etcd-key.pem \
-  --trusted-ca-file=/etc/etcd/ca.pem \
-  --peer-trusted-ca-file=/etc/etcd/ca.pem \
-  --peer-client-cert-auth \
-  --client-cert-auth \
-  --initial-advertise-peer-urls https://${ip}:2380 \
-  --listen-peer-urls https://${ip}:2380 \
-  --listen-client-urls https://${ip}:2379,http://127.0.0.1:2379 \
-  --advertise-client-urls https://${ip}:2379 \
-  --initial-cluster-token etcd-cluster-0 \
-  --initial-cluster ${container_name}=https://${ip}:2380 \
-  --initial-cluster-state new \
+ExecStart=/usr/local/bin/etcd \\
+  --name ${container_name} \\
+  --cert-file=/etc/etcd/etcd.pem \\
+  --key-file=/etc/etcd/etcd-key.pem \\
+  --peer-cert-file=/etc/etcd/etcd.pem \\
+  --peer-key-file=/etc/etcd/etcd-key.pem \\
+  --trusted-ca-file=/etc/etcd/ca.pem \\
+  --peer-trusted-ca-file=/etc/etcd/ca.pem \\
+  --peer-client-cert-auth \\
+  --client-cert-auth \\
+  --initial-advertise-peer-urls https://${ip}:2380 \\
+  --listen-peer-urls https://${ip}:2380 \\
+  --listen-client-urls https://${ip}:2379,http://127.0.0.1:2379 \\
+  --advertise-client-urls https://${ip}:2379 \\
+  --initial-cluster-token etcd-cluster-0 \\
+  --initial-cluster ${container_name}=https://${ip}:2380 \\
+  --initial-cluster-state new \\
   --data-dir=/var/lib/etcd
 Restart=on-failure
 RestartSec=5
@@ -734,39 +734,39 @@ kubedee::configure_controller() {
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
-cat >/etc/systemd/system/kube-apiserver.service <<KUBE_APISERVER_UNIT
+cat >/etc/systemd/system/kube-apiserver.service <<'KUBE_APISERVER_UNIT'
 [Unit]
 Description=Kubernetes API Server
 
 [Service]
-ExecStart=/usr/local/bin/kube-apiserver \
-  --admission-control=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \
-  --allow-privileged=true \
-  --apiserver-count=3 \
-  --audit-log-maxage=30 \
-  --audit-log-maxbackup=3 \
-  --audit-log-maxsize=100 \
-  --audit-log-path=/var/log/audit.log \
-  --authorization-mode=Node,RBAC \
-  --bind-address=0.0.0.0 \
-  --client-ca-file=/etc/kubernetes/ca.pem \
-  --enable-swagger-ui=true \
-  --etcd-cafile=/etc/kubernetes/ca.pem \
-  --etcd-certfile=/etc/kubernetes/kubernetes.pem \
-  --etcd-keyfile=/etc/kubernetes/kubernetes-key.pem \
-  --etcd-servers=https://${etcd_ip}:2379 \
-  --event-ttl=1h \
-  --insecure-bind-address=127.0.0.1 \
-  --kubelet-certificate-authority=/etc/kubernetes/ca.pem \
-  --kubelet-client-certificate=/etc/kubernetes/kubernetes.pem \
-  --kubelet-client-key=/etc/kubernetes/kubernetes-key.pem \
-  --kubelet-https=true \
-  --runtime-config=rbac.authorization.k8s.io/v1alpha1 \
-  --service-account-key-file=/etc/kubernetes/ca-key.pem \
-  --service-cluster-ip-range=10.32.0.0/24 \
-  --service-node-port-range=30000-32767 \
-  --tls-cert-file=/etc/kubernetes/kubernetes.pem \
-  --tls-private-key-file=/etc/kubernetes/kubernetes-key.pem \
+ExecStart=/usr/local/bin/kube-apiserver \\
+  --admission-control=NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  --allow-privileged=true \\
+  --apiserver-count=3 \\
+  --audit-log-maxage=30 \\
+  --audit-log-maxbackup=3 \\
+  --audit-log-maxsize=100 \\
+  --audit-log-path=/var/log/audit.log \\
+  --authorization-mode=Node,RBAC \\
+  --bind-address=0.0.0.0 \\
+  --client-ca-file=/etc/kubernetes/ca.pem \\
+  --enable-swagger-ui=true \\
+  --etcd-cafile=/etc/kubernetes/ca.pem \\
+  --etcd-certfile=/etc/kubernetes/kubernetes.pem \\
+  --etcd-keyfile=/etc/kubernetes/kubernetes-key.pem \\
+  --etcd-servers=https://${etcd_ip}:2379 \\
+  --event-ttl=1h \\
+  --insecure-bind-address=127.0.0.1 \\
+  --kubelet-certificate-authority=/etc/kubernetes/ca.pem \\
+  --kubelet-client-certificate=/etc/kubernetes/kubernetes.pem \\
+  --kubelet-client-key=/etc/kubernetes/kubernetes-key.pem \\
+  --kubelet-https=true \\
+  --runtime-config=rbac.authorization.k8s.io/v1alpha1 \\
+  --service-account-key-file=/etc/kubernetes/ca-key.pem \\
+  --service-cluster-ip-range=10.32.0.0/24 \\
+  --service-node-port-range=30000-32767 \\
+  --tls-cert-file=/etc/kubernetes/kubernetes.pem \\
+  --tls-private-key-file=/etc/kubernetes/kubernetes-key.pem \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -775,24 +775,24 @@ RestartSec=5
 WantedBy=multi-user.target
 KUBE_APISERVER_UNIT
 
-cat >/etc/systemd/system/kube-controller-manager.service <<KUBE_CONTROLLER_MANAGER_UNIT
+cat >/etc/systemd/system/kube-controller-manager.service <<'KUBE_CONTROLLER_MANAGER_UNIT'
 [Unit]
 Description=Kubernetes Controller Manager
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
-ExecStart=/usr/local/bin/kube-controller-manager \
-  --address=0.0.0.0 \
-  --allocate-node-cidrs=true \
-  --cluster-cidr=10.244.0.0/16 \
-  --cluster-name=kubernetes \
-  --cluster-signing-cert-file=/etc/kubernetes/ca.pem \
-  --cluster-signing-key-file=/etc/kubernetes/ca-key.pem \
-  --leader-elect=true \
-  --master=http://127.0.0.1:8080 \
-  --root-ca-file=/etc/kubernetes/ca.pem \
-  --service-account-private-key-file=/etc/kubernetes/ca-key.pem \
-  --service-cluster-ip-range=10.32.0.0/24 \
+ExecStart=/usr/local/bin/kube-controller-manager \\
+  --address=0.0.0.0 \\
+  --allocate-node-cidrs=true \\
+  --cluster-cidr=10.244.0.0/16 \\
+  --cluster-name=kubernetes \\
+  --cluster-signing-cert-file=/etc/kubernetes/ca.pem \\
+  --cluster-signing-key-file=/etc/kubernetes/ca-key.pem \\
+  --leader-elect=true \\
+  --master=http://127.0.0.1:8080 \\
+  --root-ca-file=/etc/kubernetes/ca.pem \\
+  --service-account-private-key-file=/etc/kubernetes/ca-key.pem \\
+  --service-cluster-ip-range=10.32.0.0/24 \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -801,14 +801,14 @@ RestartSec=5
 WantedBy=multi-user.target
 KUBE_CONTROLLER_MANAGER_UNIT
 
-cat >/etc/systemd/system/kube-scheduler.service <<KUBE_SCHEDULER_UNIT
+cat >/etc/systemd/system/kube-scheduler.service <<'KUBE_SCHEDULER_UNIT'
 [Unit]
 Description=Kubernetes Scheduler
 
 [Service]
-ExecStart=/usr/local/bin/kube-scheduler \
-  --leader-elect=true \
-  --master=http://127.0.0.1:8080 \
+ExecStart=/usr/local/bin/kube-scheduler \\
+  --leader-elect=true \\
+  --master=http://127.0.0.1:8080 \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -966,7 +966,7 @@ ln -s /etc/crio/policy.json /etc/containers/policy.json
 
 mkdir -p /etc/cni/net.d
 
-cat >/etc/systemd/system/crio.service <<CRIO_UNIT
+cat >/etc/systemd/system/crio.service <<'CRIO_UNIT'
 [Unit]
 Description=CRI-O daemon
 
@@ -979,35 +979,35 @@ RestartSec=10s
 WantedBy=multi-user.target
 CRIO_UNIT
 
-cat >/etc/systemd/system/kubelet.service <<KUBELET_UNIT
+cat >/etc/systemd/system/kubelet.service <<'KUBELET_UNIT'
 [Unit]
 Description=Kubernetes Kubelet
 After=crio.service
 Requires=crio.service
 
 [Service]
-ExecStart=/usr/local/bin/kubelet \
-  --fail-swap-on=false \
-  --anonymous-auth=false \
-  --authorization-mode=Webhook \
-  --client-ca-file=/etc/kubernetes/ca.pem \
-  --allow-privileged=true \
-  --cluster-dns=10.32.0.10 \
-  --cluster-domain=cluster.local \
-  --container-runtime=remote \
-  --container-runtime-endpoint=unix:///var/run/crio/crio.sock \
-  --image-pull-progress-deadline=2m \
-  --image-service-endpoint=unix:///var/run/crio/crio.sock \
-  --kubeconfig=/etc/kubernetes/${container_name}-kubelet.kubeconfig \
-  --network-plugin=cni \
-  --pod-cidr=10.20.0.0/16 \
-  --register-node=true \
-  --runtime-request-timeout=10m \
-  --tls-cert-file=/etc/kubernetes/${container_name}.pem \
-  --tls-private-key-file=/etc/kubernetes/${container_name}-key.pem \
-  --feature-gates=MountPropagation=false \
-  --enforce-node-allocatable= \
-  --eviction-hard= \
+ExecStart=/usr/local/bin/kubelet \\
+  --fail-swap-on=false \\
+  --anonymous-auth=false \\
+  --authorization-mode=Webhook \\
+  --client-ca-file=/etc/kubernetes/ca.pem \\
+  --allow-privileged=true \\
+  --cluster-dns=10.32.0.10 \\
+  --cluster-domain=cluster.local \\
+  --container-runtime=remote \\
+  --container-runtime-endpoint=unix:///var/run/crio/crio.sock \\
+  --image-pull-progress-deadline=2m \\
+  --image-service-endpoint=unix:///var/run/crio/crio.sock \\
+  --kubeconfig=/etc/kubernetes/${container_name}-kubelet.kubeconfig \\
+  --network-plugin=cni \\
+  --pod-cidr=10.20.0.0/16 \\
+  --register-node=true \\
+  --runtime-request-timeout=10m \\
+  --tls-cert-file=/etc/kubernetes/${container_name}.pem \\
+  --tls-private-key-file=/etc/kubernetes/${container_name}-key.pem \\
+  --feature-gates=MountPropagation=false \\
+  --enforce-node-allocatable= \\
+  --eviction-hard= \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -1016,15 +1016,15 @@ RestartSec=5
 WantedBy=multi-user.target
 KUBELET_UNIT
 
-cat >/etc/systemd/system/kube-proxy.service <<KUBE_PROXY_UNIT
+cat >/etc/systemd/system/kube-proxy.service <<'KUBE_PROXY_UNIT'
 [Unit]
 Description=Kubernetes Kube Proxy
 
 [Service]
-ExecStart=/usr/local/bin/kube-proxy \
-  --cluster-cidr=10.200.0.0/16 \
-  --kubeconfig=/etc/kubernetes/${container_name}-kube-proxy.kubeconfig \
-  --proxy-mode=iptables \
+ExecStart=/usr/local/bin/kube-proxy \\
+  --cluster-cidr=10.200.0.0/16 \\
+  --kubeconfig=/etc/kubernetes/${container_name}-kube-proxy.kubeconfig \\
+  --proxy-mode=iptables \\
   --v=2
 Restart=on-failure
 RestartSec=5
