@@ -250,7 +250,7 @@ main() {
     cmd_create "$@"
     cmd_start "$@"
     ;;
-  help)
+  help | -h | --help)
     exit_usage
     ;;
   *)
