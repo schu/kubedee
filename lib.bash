@@ -983,6 +983,11 @@ kubedee::configure_rbac() {
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
 
+# During apiserver initialization, resources are not available
+# immediately. Wait for 'clusterroles' to avoid the following:
+# error: unable to recognize "STDIN": no matches for kind "ClusterRole" in version "rbac.authorization.k8s.io/v1beta1"
+until kubectl get clusterroles &>/dev/null; do sleep 1; done
+
 cat <<APISERVER_RBAC | kubectl apply -f -
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
