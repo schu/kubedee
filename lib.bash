@@ -609,20 +609,20 @@ kubedee::create_kubeconfig_worker() {
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
     --embed-certs=true \
     --server="https://${controller_ip}:6443" \
-    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kube-proxy.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
 
   kubectl config set-credentials kube-proxy \
     --client-certificate="${cluster_dir}/certificates/kube-proxy.pem" \
     --client-key="${cluster_dir}/certificates/kube-proxy-key.pem" \
     --embed-certs=true \
-    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kube-proxy.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
 
   kubectl config set-context default \
     --cluster=kubedee \
     --user=kube-proxy \
-    --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kube-proxy.kubeconfig"
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kube-proxy.kubeconfig"
+  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
 
   kubectl config set-cluster kubedee \
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
@@ -1023,7 +1023,7 @@ Description=Kubernetes Kube Proxy
 [Service]
 ExecStart=/usr/local/bin/kube-proxy \\
   --cluster-cidr=10.200.0.0/16 \\
-  --kubeconfig=/etc/kubernetes/${container_name}-kube-proxy.kubeconfig \\
+  --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig \\
   --proxy-mode=iptables \\
   --v=2
 Restart=on-failure
