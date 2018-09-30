@@ -565,6 +565,66 @@ EOF
 
 # Args:
 #   $1 The validated cluster name
+kubedee::create_certificate_kube_controller_manager() {
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  mkdir -p "${target_dir}"
+  (
+    kubedee::cd_or_exit_error "${target_dir}"
+    kubedee::log_info "Generating kube-controller-manager certificate ..."
+    cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes - | cfssljson -bare kube-controller-manager
+{
+  "CN": "system:kube-controller-manager",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "DE",
+      "L": "Berlin",
+      "O": "system:kube-controller-manager",
+      "OU": "kubedee",
+      "ST": "Berlin"
+    }
+  ]
+}
+EOF
+  )
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::create_certificate_kube_scheduler() {
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  mkdir -p "${target_dir}"
+  (
+    kubedee::cd_or_exit_error "${target_dir}"
+    kubedee::log_info "Generating kube-scheduler certificate ..."
+    cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes - | cfssljson -bare kube-scheduler
+{
+  "CN": "system:kube-scheduler",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "DE",
+      "L": "Berlin",
+      "O": "system:kube-scheduler",
+      "OU": "kubedee",
+      "ST": "Berlin"
+    }
+  ]
+}
+EOF
+  )
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::create_kubeconfig_admin() {
   local -r cluster_name="${1}"
   local -r cluster_dir="${kubedee_dir}/clusters/${cluster_name}"
@@ -590,6 +650,56 @@ kubedee::create_kubeconfig_admin() {
     --kubeconfig="${cluster_dir}/kubeconfig/admin.kubeconfig"
 
   kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/admin.kubeconfig"
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::create_kubeconfig_controller() {
+  local -r cluster_name="${1}"
+  local -r cluster_dir="${kubedee_dir}/clusters/${cluster_name}"
+  local controller_ip
+  controller_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
+  mkdir -p "${cluster_dir}/kubeconfig"
+
+  kubedee::log_info "Generating ${container_name} kubeconfig ..."
+
+  kubectl config set-cluster kubedee \
+    --certificate-authority="${cluster_dir}/certificates/ca.pem" \
+    --embed-certs=true \
+    --server="https://${controller_ip}:6443" \
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
+
+  kubectl config set-credentials kube-controller-manager \
+    --client-certificate="${cluster_dir}/certificates/kube-controller-manager.pem" \
+    --client-key="${cluster_dir}/certificates/kube-controller-manager-key.pem" \
+    --embed-certs=true \
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
+
+  kubectl config set-context default \
+    --cluster=kubedee \
+    --user=kube-controller-manager \
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
+
+  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
+
+  kubectl config set-cluster kubedee \
+    --certificate-authority="${cluster_dir}/certificates/ca.pem" \
+    --embed-certs=true \
+    --server="https://${controller_ip}:6443" \
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
+
+  kubectl config set-credentials kube-scheduler \
+    --client-certificate="${cluster_dir}/certificates/kube-scheduler.pem" \
+    --client-key="${cluster_dir}/certificates/kube-scheduler-key.pem" \
+    --embed-certs=true \
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
+
+  kubectl config set-context default \
+    --cluster=kubedee \
+    --user=kube-scheduler \
+    --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
+
+  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
 }
 
 # Args:
@@ -722,6 +832,9 @@ kubedee::configure_controller() {
   local -r container_name="${2}"
   local etcd_ip
   etcd_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-etcd")"
+  kubedee::create_certificate_kube_controller_manager "${cluster_name}"
+  kubedee::create_certificate_kube_scheduler "${cluster_name}"
+  kubedee::create_kubeconfig_controller "${cluster_name}" "${container_name}"
   kubedee::container_wait_running "${container_name}"
   kubedee::log_info "Providing files to ${container_name} ..."
 
@@ -730,6 +843,8 @@ kubedee::configure_controller() {
   lxc config device add "${container_name}" binary-kube-scheduler disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kube-scheduler" path="/usr/local/bin/kube-scheduler"
 
   lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{kubernetes.pem,kubernetes-key.pem,ca.pem,ca-key.pem} "${container_name}/etc/kubernetes/"
+
+  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/"{kube-controller-manager.kubeconfig,kube-scheduler.kubeconfig} "${container_name}/etc/kubernetes/"
 
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
@@ -788,11 +903,12 @@ ExecStart=/usr/local/bin/kube-controller-manager \\
   --cluster-name=kubernetes \\
   --cluster-signing-cert-file=/etc/kubernetes/ca.pem \\
   --cluster-signing-key-file=/etc/kubernetes/ca-key.pem \\
+  --kubeconfig=/etc/kubernetes/kube-controller-manager.kubeconfig \\
   --leader-elect=true \\
-  --master=http://127.0.0.1:8080 \\
   --root-ca-file=/etc/kubernetes/ca.pem \\
   --service-account-private-key-file=/etc/kubernetes/ca-key.pem \\
   --service-cluster-ip-range=10.32.0.0/24 \\
+  --use-service-account-credentials=true \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -801,14 +917,26 @@ RestartSec=5
 WantedBy=multi-user.target
 KUBE_CONTROLLER_MANAGER_UNIT
 
+# TODO(schu): change 'componentconfig/v1alpha1' to
+# 'kubescheduler.config.k8s.io/v1alpha1' once supported
+# by all maintained versions..
+mkdir -p /etc/kubernetes/config
+cat >/etc/kubernetes/config/kube-scheduler.yaml <<'KUBE_SCHEDULER_CONFIG'
+apiVersion: componentconfig/v1alpha1
+kind: KubeSchedulerConfiguration
+clientConnection:
+  kubeconfig: "/etc/kubernetes/kube-scheduler.kubeconfig"
+leaderElection:
+  leaderElect: true
+KUBE_SCHEDULER_CONFIG
+
 cat >/etc/systemd/system/kube-scheduler.service <<'KUBE_SCHEDULER_UNIT'
 [Unit]
 Description=Kubernetes Scheduler
 
 [Service]
 ExecStart=/usr/local/bin/kube-scheduler \\
-  --leader-elect=true \\
-  --master=http://127.0.0.1:8080 \\
+  --config=/etc/kubernetes/config/kube-scheduler.yaml \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -946,7 +1074,7 @@ kubedee::configure_worker() {
   lxc config device add "${container_name}" crio-libexec disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/libexec/crio/" path="/usr/local/libexec/crio/"
 
   lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{"${container_name}.pem","${container_name}-key.pem",ca.pem} "${container_name}/etc/kubernetes/"
-  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/"* "${container_name}/etc/kubernetes/"
+  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/"{"${container_name}-kubelet.kubeconfig",kube-proxy.kubeconfig} "${container_name}/etc/kubernetes/"
 
   lxc config device add "${container_name}" cni-plugins disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/opt/cni/bin/" path="/opt/cni/bin/"
 
