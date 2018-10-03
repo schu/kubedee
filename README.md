@@ -40,36 +40,27 @@ have a `kubedee-` prefix.
 
 ### Getting started
 
-First, download or build the version of Kubernetes that you want to
-setup:
+kubedee can install clusters based on an upstream version of Kubernetes
+or your own build.
 
-To download a release, you can use the [`./scripts/download-k8s-binaries`](scripts/download-k8s-binaries)
-helper script and point kubedee to the directory with `--bin-dir`,
-for example:
-
-```
-./scripts/download-k8s-binaries v1.11.2 /tmp/k8s-v1.11.2
-kubedee up test --bin-dir /tmp/k8s-v1.11.2/kubernetes/server/bin/
-```
-
-To run a local build, kubedee by default looks for k8s executables in
-`./_output/bin/`. That matches the default location after running
-`make` in the Kubernetes repository. For a different location, use
-`--bin-dir` again. Example:
+To install an upstream version, use `--kubernetes-version` to specify
+the release (Git tag) that you want to install. For example:
 
 ```
-cd $GOPATH/src/github.com/kubernetes/kubernetes
-git checkout v1.11.2
-make
-[...]
+kubedee up test --kubernetes-version v1.12.0
 ```
 
-Create and start a new cluster with name "test".
+To install a local build, specify the location of the binaries
+(`kube-apiserver` etc.) with `--bin-dir`. For example:
 
 ```
-kubedee up test
-[...]
+kubedee up test --bin-dir /path/to/my/kubernetes/binaries
 ```
+
+The default for `--bin-dir` is `./_output/bin/` and thus matches the
+default location after running `make` in the Kubernetes repository.
+So in a typical development workflow `--bin-dir` doesn't need to be
+specified.
 
 Note: after the installation or upgrade of kubedee, kubedee requires some
 extra time to download and update cached packages and images once.

@@ -34,6 +34,7 @@ apiserver_extra_hostnames=""
 bin_dir="./_output/bin"
 kubedee_dir="${kubedee_dir:-${HOME}/.local/share/kubedee}"
 kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
+kubernetes_version=""
 no_set_context="false"
 num_worker=2
 
@@ -63,6 +64,8 @@ Usage:
 Options:
   --apiserver-extra-hostnames <hostname>[,<hostname>]   additional X509v3 Subject Alternative Name to set, comma separated
   --bin-dir <dir>                                       where to copy the k8s binaries from (default: ./_output/bin)
+  --kubernetes-version <version>                        the release of Kubernetes to install, for example 'v1.12.0'
+                                                        takes precedence over \`--bin-dir\`
   --num-worker <num>                                    number of worker nodes to start (default: 2)
 USAGE
   exit 1
@@ -77,7 +80,12 @@ cmd_create() {
   kubedee::prune_old_caches "${cluster_name}"
   kubedee::prepare_container_image "${cluster_name}"
   kubedee::log_info "Creating new cluster ${cluster_name} ..."
-  kubedee::copy_k8s_binaries "${cluster_name}" "${bin_dir}"
+  if [[ -n "${kubernetes_version}" ]]; then
+    kubedee::fetch_k8s "${kubernetes_version}"
+    kubedee::copy_k8s_binaries "${cluster_name}" "${kubedee_dir}/k8s-binaries/${kubernetes_version}"
+  else
+    kubedee::copy_k8s_binaries "${cluster_name}" "${bin_dir}"
+  fi
   kubedee::copy_etcd_binaries "${cluster_name}"
   kubedee::copy_crio_files "${cluster_name}"
   kubedee::copy_runc_binaries "${cluster_name}"
@@ -214,6 +222,11 @@ main() {
     --dir)
       kubedee_dir="${2}"
       kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
+      shift
+      shift
+      ;;
+    --kubernetes-version)
+      kubernetes_version="${2}"
       shift
       shift
       ;;

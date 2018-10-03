@@ -159,6 +159,29 @@ kubedee::copy_k8s_binaries() {
   done
 }
 
+kubedee::fetch_k8s() {
+  local -r k8s_version="${1}"
+  local -r target_dir="${kubedee_dir}/k8s-binaries/${k8s_version}"
+  if [[ -e "${target_dir}/kubernetes/server/bin/kube-apiserver" ]] &&
+    [[ -e "${target_dir}/kubernetes/server/bin/kube-controller-manager" ]] &&
+    [[ -e "${target_dir}/kubernetes/server/bin/kube-proxy" ]] &&
+    [[ -e "${target_dir}/kubernetes/server/bin/kube-scheduler" ]] &&
+    [[ -e "${target_dir}/kubernetes/server/bin/kubectl" ]] &&
+    [[ -e "${target_dir}/kubernetes/server/bin/kubelet" ]]; then
+    # nothing to do
+    return
+  fi
+  mkdir -p "${target_dir}"
+  (
+    kubedee::cd_or_exit_error "${target_dir}"
+    kubedee::log_info "Fetching Kubernetes ${k8s_version} ..."
+    curl -fsSL -O "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-amd64.tar.gz"
+    tar -xf "kubernetes-server-linux-amd64.tar.gz" --strip-components 3 \
+      "kubernetes/server/bin/"{kube-apiserver,kube-controller-manager,kubectl,kubelet,kube-proxy,kube-scheduler}
+    rm -f "kubernetes-server-linux-amd64.tar.gz"
+  )
+}
+
 kubedee::fetch_etcd() {
   local -r cache_dir="${kubedee_cache_dir}/etcd/${kubedee_etcd_version}"
   mkdir -p "${cache_dir}"
