@@ -14,7 +14,7 @@ readonly dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
 readonly tmp_dir="$(mktemp -d "/tmp/kubedee-test-XXXXXX")"
 cleanup() {
   lxc list --format csv --columns n |
-    grep ^kubedee-smoke-test | xargs -r lxc delete -f
+    grep ^kubedee-smoke-test | xargs -r lxc delete -f || true
   rm -rf "${tmp_dir}"
 }
 trap cleanup EXIT
