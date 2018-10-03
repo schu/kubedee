@@ -327,6 +327,7 @@ kubedee::create_network() {
     echo "kubedee-${network_id}" >"${network_id_file}"
   fi
   if ! lxc network show "kubedee-${network_id}" &>/dev/null; then
+    kubedee::log_info "Creating network for ${cluster_name} ..."
     lxc network create "kubedee-${network_id}"
   fi
 }
@@ -336,6 +337,7 @@ kubedee::create_network() {
 kubedee::delete_network() {
   local -r cluster_name="${1}"
   local -r network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
+  kubedee::log_info "Deleting network for ${cluster_name} ..."
   [[ -f "${network_id_file}" ]] || {
     kubedee::log_warn "${network_id_file} doesn't exist"
     return
@@ -355,6 +357,7 @@ kubedee::create_storage_pool() {
   local -r cluster_name="${1:-kubedee}"
   local -r driver="${2:-btrfs}"
   if ! lxc storage show "${cluster_name}" &>/dev/null; then
+    kubedee::log_info "Creating new storage pool for kubedee ..."
     lxc storage create "${cluster_name}" "${driver}"
   fi
 }
