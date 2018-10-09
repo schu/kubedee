@@ -162,12 +162,12 @@ kubedee::copy_k8s_binaries() {
 kubedee::fetch_k8s() {
   local -r k8s_version="${1}"
   local -r target_dir="${kubedee_cache_dir}/kubernetes/${k8s_version}"
-  if [[ -e "${target_dir}/kubernetes/server/bin/kube-apiserver" ]] &&
-    [[ -e "${target_dir}/kubernetes/server/bin/kube-controller-manager" ]] &&
-    [[ -e "${target_dir}/kubernetes/server/bin/kube-proxy" ]] &&
-    [[ -e "${target_dir}/kubernetes/server/bin/kube-scheduler" ]] &&
-    [[ -e "${target_dir}/kubernetes/server/bin/kubectl" ]] &&
-    [[ -e "${target_dir}/kubernetes/server/bin/kubelet" ]]; then
+  if [[ -e "${target_dir}/kube-apiserver" ]] &&
+    [[ -e "${target_dir}/kube-controller-manager" ]] &&
+    [[ -e "${target_dir}/kube-proxy" ]] &&
+    [[ -e "${target_dir}/kube-scheduler" ]] &&
+    [[ -e "${target_dir}/kubectl" ]] &&
+    [[ -e "${target_dir}/kubelet" ]]; then
     # nothing to do
     return
   fi
