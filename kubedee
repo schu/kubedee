@@ -82,7 +82,7 @@ cmd_create() {
   kubedee::log_info "Creating new cluster ${cluster_name} ..."
   if [[ -n "${kubernetes_version}" ]]; then
     kubedee::fetch_k8s "${kubernetes_version}"
-    kubedee::copy_k8s_binaries "${cluster_name}" "${kubedee_dir}/k8s-binaries/${kubernetes_version}"
+    kubedee::copy_k8s_binaries "${cluster_name}" "${kubedee_cache_dir}/kubernetes/${kubernetes_version}"
   else
     kubedee::copy_k8s_binaries "${cluster_name}" "${bin_dir}"
   fi

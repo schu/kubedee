@@ -161,7 +161,7 @@ kubedee::copy_k8s_binaries() {
 
 kubedee::fetch_k8s() {
   local -r k8s_version="${1}"
-  local -r target_dir="${kubedee_dir}/k8s-binaries/${k8s_version}"
+  local -r target_dir="${kubedee_cache_dir}/kubernetes/${k8s_version}"
   if [[ -e "${target_dir}/kubernetes/server/bin/kube-apiserver" ]] &&
     [[ -e "${target_dir}/kubernetes/server/bin/kube-controller-manager" ]] &&
     [[ -e "${target_dir}/kubernetes/server/bin/kube-proxy" ]] &&
