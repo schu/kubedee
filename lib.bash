@@ -1138,6 +1138,44 @@ RestartSec=10s
 WantedBy=multi-user.target
 CRIO_UNIT
 
+mkdir -p /etc/kubernetes/config
+cat >/etc/kubernetes/config/kubelet.yaml <<'KUBELET_CONFIG'
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+  x509:
+    clientCAFile: "/etc/kubernetes/ca.pem"
+authorization:
+  mode: Webhook
+clusterDomain: "cluster.local"
+clusterDNS:
+  - "10.3.0.10"
+podCIDR: "10.20.0.0/16"
+runtimeRequestTimeout: "10m"
+tlsCertFile: "/etc/kubernetes/${container_name}.pem"
+tlsPrivateKeyFile: "/etc/kubernetes/${container_name}-key.pem"
+failSwapOn: false
+evictionHard: {}
+enforceNodeAllocatable: []
+featureGates:
+  MountPropagation: false
+
+
+# TODO(schu): check if issues were updated
+# https://github.com/kubernetes/kubernetes/issues/66067
+# https://github.com/kubernetes-sigs/cri-o/issues/1769
+resolverConfig: /run/systemd/resolve/resolv.conf
+KUBELET_CONFIG
+
+# Another hotfix attempt for the bug ^^^ as setting
+# resolverConfig for the kubelet doesn't seem to work
+# with cri-o
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
 cat >/etc/systemd/system/kubelet.service <<'KUBELET_UNIT'
 [Unit]
 Description=Kubernetes Kubelet
@@ -1146,27 +1184,14 @@ Requires=crio.service
 
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
-  --fail-swap-on=false \\
-  --anonymous-auth=false \\
-  --authorization-mode=Webhook \\
-  --client-ca-file=/etc/kubernetes/ca.pem \\
   --allow-privileged=true \\
-  --cluster-dns=10.32.0.10 \\
-  --cluster-domain=cluster.local \\
+  --config=/etc/kubernetes/config/kubelet.yaml \\
   --container-runtime=remote \\
   --container-runtime-endpoint=unix:///var/run/crio/crio.sock \\
-  --image-pull-progress-deadline=2m \\
   --image-service-endpoint=unix:///var/run/crio/crio.sock \\
   --kubeconfig=/etc/kubernetes/${container_name}-kubelet.kubeconfig \\
   --network-plugin=cni \\
-  --pod-cidr=10.20.0.0/16 \\
   --register-node=true \\
-  --runtime-request-timeout=10m \\
-  --tls-cert-file=/etc/kubernetes/${container_name}.pem \\
-  --tls-private-key-file=/etc/kubernetes/${container_name}-key.pem \\
-  --feature-gates=MountPropagation=false \\
-  --enforce-node-allocatable= \\
-  --eviction-hard= \\
   --v=2
 Restart=on-failure
 RestartSec=5
