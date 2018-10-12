@@ -66,6 +66,7 @@ Options:
   --bin-dir <dir>                                       where to copy the k8s binaries from (default: ./_output/bin)
   --kubernetes-version <version>                        the release of Kubernetes to install, for example 'v1.12.0'
                                                         takes precedence over \`--bin-dir\`
+  --no-set-context                                      prevent kubedee from adding a new kubeconfig context
   --num-worker <num>                                    number of worker nodes to start (default: 2)
 USAGE
   exit 1
