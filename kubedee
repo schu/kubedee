@@ -240,6 +240,9 @@ main() {
       no_set_context="true"
       shift
       ;;
+    help | -h | --help)
+      exit_usage
+      ;;
     *)
       args+=("${1}")
       shift
@@ -264,12 +267,9 @@ main() {
     cmd_create "$@"
     cmd_start "$@"
     ;;
-  help | -h | --help)
-    exit_usage
-    ;;
   *)
     echo "Unknown command: ${cmd}" >&2
-    exit_usage
+    echo "See \`kubedee help\` for help" >&2
     ;;
   esac
 }
