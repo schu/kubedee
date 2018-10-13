@@ -897,7 +897,6 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --etcd-keyfile=/etc/kubernetes/kubernetes-key.pem \\
   --etcd-servers=https://${etcd_ip}:2379 \\
   --event-ttl=1h \\
-  --insecure-bind-address=127.0.0.1 \\
   --kubelet-certificate-authority=/etc/kubernetes/ca.pem \\
   --kubelet-client-certificate=/etc/kubernetes/kubernetes.pem \\
   --kubelet-client-key=/etc/kubernetes/kubernetes-key.pem \\
@@ -923,7 +922,6 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
 ExecStart=/usr/local/bin/kube-controller-manager \\
-  --address=0.0.0.0 \\
   --allocate-node-cidrs=true \\
   --cluster-cidr=10.244.0.0/16 \\
   --cluster-name=kubernetes \\
