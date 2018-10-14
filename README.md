@@ -19,7 +19,7 @@ For questions or feedback, please open an issue or join `#kubedee` on [freenode]
 
 ## Installation
 
-kubedee is meant to and easily installed out of git. Clone the repistory
+kubedee is meant to and easily installed out of git. Clone the repository
 and link `kubedee` from a directory in your `$PATH`. Example:
 
 ```
