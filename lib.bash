@@ -392,13 +392,13 @@ kubedee::container_wait_running() {
 
 # Args:
 #   $1 The validated cluster name
-kubedee::create_certificate_authority() {
+kubedee::create_certificate_authority_k8s() {
   local -r cluster_name="${1}"
   local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
   mkdir -p "${target_dir}"
   (
     kubedee::cd_or_exit_error "${target_dir}"
-    kubedee::log_info "Generating certificate authority ..."
+    kubedee::log_info "Generating certificate authority for Kubernetes ..."
     cat <<EOF | cfssl gencert -initca - | cfssljson -bare ca
 {
   "CN": "Kubernetes",
@@ -411,6 +411,51 @@ kubedee::create_certificate_authority() {
       "C": "DE",
       "L": "Berlin",
       "O": "Kubernetes",
+      "OU": "CA",
+      "ST": "Berlin"
+    }
+  ]
+}
+EOF
+    cat >ca-config.json <<EOF
+{
+  "signing": {
+    "default": {
+      "expiry": "8760h"
+    },
+    "profiles": {
+      "kubernetes": {
+        "usages": ["signing", "key encipherment", "server auth", "client auth"],
+        "expiry": "8760h"
+      }
+    }
+  }
+}
+EOF
+  )
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::create_certificate_authority_etcd() {
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  mkdir -p "${target_dir}"
+  (
+    kubedee::cd_or_exit_error "${target_dir}"
+    kubedee::log_info "Generating certificate authority for etcd ..."
+    cat <<EOF | cfssl gencert -initca - | cfssljson -bare ca-etcd
+{
+  "CN": "etcd",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "DE",
+      "L": "Berlin",
+      "O": "etcd",
       "OU": "CA",
       "ST": "Berlin"
     }
@@ -477,7 +522,7 @@ kubedee::create_certificate_etcd() {
   (
     kubedee::cd_or_exit_error "${target_dir}"
     kubedee::log_info "Generating etcd certificate ..."
-    cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes -hostname="${ip},127.0.0.1" - | cfssljson -bare etcd
+    cat <<EOF | cfssl gencert -ca=ca-etcd.pem -ca-key=ca-etcd-key.pem -config=ca-config.json -profile=kubernetes -hostname="${ip},127.0.0.1" - | cfssljson -bare etcd
 {
   "CN": "etcd",
   "key": {
@@ -810,7 +855,7 @@ kubedee::configure_etcd() {
   lxc config device add "${container_name}" binary-etcd disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/etcd" path="/usr/local/bin/etcd"
   lxc config device add "${container_name}" binary-etcdctl disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/etcdctl" path="/usr/local/bin/etcdctl"
 
-  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{etcd.pem,etcd-key.pem,ca.pem} "${container_name}/etc/etcd/"
+  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{etcd.pem,etcd-key.pem,ca-etcd.pem} "${container_name}/etc/etcd/"
 
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
@@ -826,8 +871,8 @@ ExecStart=/usr/local/bin/etcd \\
   --key-file=/etc/etcd/etcd-key.pem \\
   --peer-cert-file=/etc/etcd/etcd.pem \\
   --peer-key-file=/etc/etcd/etcd-key.pem \\
-  --trusted-ca-file=/etc/etcd/ca.pem \\
-  --peer-trusted-ca-file=/etc/etcd/ca.pem \\
+  --trusted-ca-file=/etc/etcd/ca-etcd.pem \\
+  --peer-trusted-ca-file=/etc/etcd/ca-etcd.pem \\
   --peer-client-cert-auth \\
   --client-cert-auth \\
   --initial-advertise-peer-urls https://${ip}:2380 \\
@@ -868,7 +913,7 @@ kubedee::configure_controller() {
   lxc config device add "${container_name}" binary-kube-controller-manager disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kube-controller-manager" path="/usr/local/bin/kube-controller-manager"
   lxc config device add "${container_name}" binary-kube-scheduler disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kube-scheduler" path="/usr/local/bin/kube-scheduler"
 
-  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{kubernetes.pem,kubernetes-key.pem,ca.pem,ca-key.pem} "${container_name}/etc/kubernetes/"
+  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{kubernetes.pem,kubernetes-key.pem,ca.pem,ca-key.pem,etcd.pem,etcd-key.pem,ca-etcd.pem} "${container_name}/etc/kubernetes/"
 
   lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/"{kube-controller-manager.kubeconfig,kube-scheduler.kubeconfig} "${container_name}/etc/kubernetes/"
 
@@ -892,9 +937,9 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --client-ca-file=/etc/kubernetes/ca.pem \\
   --enable-admission-plugins=Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
   --enable-swagger-ui=true \\
-  --etcd-cafile=/etc/kubernetes/ca.pem \\
-  --etcd-certfile=/etc/kubernetes/kubernetes.pem \\
-  --etcd-keyfile=/etc/kubernetes/kubernetes-key.pem \\
+  --etcd-cafile=/etc/kubernetes/ca-etcd.pem \\
+  --etcd-certfile=/etc/kubernetes/etcd.pem \\
+  --etcd-keyfile=/etc/kubernetes/etcd-key.pem \\
   --etcd-servers=https://${etcd_ip}:2379 \\
   --event-ttl=1h \\
   --kubelet-certificate-authority=/etc/kubernetes/ca.pem \\

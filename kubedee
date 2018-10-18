@@ -91,7 +91,8 @@ cmd_create() {
   kubedee::copy_crio_files "${cluster_name}"
   kubedee::copy_runc_binaries "${cluster_name}"
   kubedee::copy_cni_plugins "${cluster_name}"
-  kubedee::create_certificate_authority "${cluster_name}"
+  kubedee::create_certificate_authority_etcd "${cluster_name}"
+  kubedee::create_certificate_authority_k8s "${cluster_name}"
   kubedee::create_certificate_admin "${cluster_name}"
 }
 
