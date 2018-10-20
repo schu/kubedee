@@ -1442,15 +1442,28 @@ kubedee::create_admin_service_account() {
 
 # Args:
 #   $1 The validated cluster name
-kubedee::get_admin_service_account_token() {
+kubedee::create_user_service_account() {
   local -r cluster_name="${1}"
   local -r kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
-  if ! kubectl --kubeconfig "${kubeconfig}" get serviceaccount -n kube-system kubedee-admin &>/dev/null; then
-    kubedee::exit_error "No admin service account found"
+  local -r sa_manifest="${kubedee_source_dir}/manifests/service-account-user.yml"
+  kubedee::log_info "Adding 'kubedee-user' service account ..."
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    apply -f "${sa_manifest}"
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::get_service_account_token() {
+  local -r cluster_name="${1}"
+  local -r name="${2}"
+  local -r namespace="${3:-default}"
+  local -r kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
+  if ! kubectl --kubeconfig "${kubeconfig}" get serviceaccount -n "${namespace}" "${name}" &>/dev/null; then
+    kubedee::exit_error "No service account with name '${name}' found in namespace '${namespace}'"
   fi
   local sa_secret
-  sa_secret="$(kubectl --kubeconfig "${kubeconfig}" get serviceaccount -n kube-system kubedee-admin -o jsonpath='{.secrets[0].name}')"
+  sa_secret="$(kubectl --kubeconfig "${kubeconfig}" get serviceaccount -n "${namespace}" "${name}" -o jsonpath='{.secrets[0].name}')"
   local sa_token
-  sa_token="$(kubectl --kubeconfig "${kubeconfig}" get secret -n kube-system "${sa_secret}" -o jsonpath='{.data.token}')"
+  sa_token="$(kubectl --kubeconfig "${kubeconfig}" get secret -n "${namespace}" "${sa_secret}" -o jsonpath='{.data.token}')"
   echo "${sa_token}" | base64 -d
 }
