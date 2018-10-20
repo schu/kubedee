@@ -32,6 +32,7 @@ readonly kubedee_version="$(
 # Option defaults
 apiserver_extra_hostnames=""
 bin_dir="./_output/bin"
+create_admin_sa="false"
 kubedee_dir="${kubedee_dir:-${HOME}/.local/share/kubedee}"
 kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
 kubernetes_version=""
@@ -49,17 +50,18 @@ exit_usage() {
   cat >&2 <<USAGE
 kubedee - ${kubedee_version}
 Usage:
-  kubedee [options] controller-ip <cluster name>   print the IPv4 address of the controller node
-  kubedee [options] create <cluster name>          create a cluster
-  kubedee [options] delete <cluster name>          delete a cluster
-  kubedee [options] etcd-env <cluster name>        print etcdctl environment variables
-  kubedee [options] kubectl-env <cluster name>     print kubectl environment variables
-  kubedee [options] list                           list all clusters
-  kubedee [options] smoke-test <cluster name>      smoke test a cluster
-  kubedee [options] start <cluster name>           start a cluster
-  kubedee [options] start-worker <cluster name>    start a new worker node in a cluster
-  kubedee [options] up <cluster name>              create + start in one command
-  kubedee [options] version                        print kubedee version and exit
+  kubedee [options] controller-ip <cluster name>     print the IPv4 address of the controller node
+  kubedee [options] create <cluster name>            create a cluster
+  kubedee [options] create-admin-sa <cluster name>   create admin service account in cluster
+  kubedee [options] delete <cluster name>            delete a cluster
+  kubedee [options] etcd-env <cluster name>          print etcdctl environment variables
+  kubedee [options] kubectl-env <cluster name>       print kubectl environment variables
+  kubedee [options] list                             list all clusters
+  kubedee [options] smoke-test <cluster name>        smoke test a cluster
+  kubedee [options] start <cluster name>             start a cluster
+  kubedee [options] start-worker <cluster name>      start a new worker node in a cluster
+  kubedee [options] up <cluster name>                create + start in one command
+  kubedee [options] version                          print kubedee version and exit
 
 Options:
   --apiserver-extra-hostnames <hostname>[,<hostname>]   additional X509v3 Subject Alternative Name to set, comma separated
@@ -136,8 +138,16 @@ cmd_start() {
   kubedee::deploy_kube_dns "${cluster_name}"
   kubedee::label_and_taint_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
   [[ "${no_set_context}" == "false" ]] && kubedee::configure_kubeconfig "${cluster_name}"
+  local admin_sa=""
+  if [[ "${create_admin_sa}" == "true" ]]; then
+    kubedee::create_admin_service_account "${cluster_name}"
+    admin_sa="$(kubedee::get_admin_service_account_token "${cluster_name}")"
+  fi
   kubedee::log_success "\\nCluster ${cluster_name} started"
   kubedee::log_success "kubectl config current-context set to kubedee-${cluster_name}\\n"
+  if [[ -n "${admin_sa}" ]]; then
+    kubedee::log_info "Admin service account token can be obtained with 'kubedee admin-sa-token ${cluster_name}'"
+  fi
   kubedee::log_info "Cluster nodes can be accessed with 'lxc exec <name> bash'"
   kubedee::log_info "Cluster files can be found in '${kubedee_dir}/clusters/${cluster_name}'\\n"
   kubedee::log_info "Current component status is (should be healthy):"
@@ -207,6 +217,20 @@ cmd_controller-ip() {
   echo "${ip}"
 }
 
+cmd_create-admin-sa() {
+  local cluster_name
+  cluster_name="$(kubedee::validate_name "${1}")"
+  kubedee::create_admin_service_account "${cluster_name}"
+}
+
+cmd_admin-sa-token() {
+  local cluster_name
+  cluster_name="$(kubedee::validate_name "${1}")"
+  local sa_token
+  sa_token="$(kubedee::get_admin_service_account_token "${cluster_name}")"
+  echo "${sa_token}"
+}
+
 main() {
   local args=()
   while [[ $# -gt 0 ]]; do
@@ -219,6 +243,10 @@ main() {
     --bin-dir)
       bin_dir="${2}"
       shift
+      shift
+      ;;
+    --create-admin-sa)
+      create_admin_sa="true"
       shift
       ;;
     --dir)
@@ -261,7 +289,7 @@ main() {
   local -r cmd="${1:-list}"
   shift || true
   case "${cmd}" in
-  controller-ip | create | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | version)
+  admin-sa-token | controller-ip | create | create-admin-sa | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | version)
     "cmd_${cmd}" "$@"
     ;;
   up)

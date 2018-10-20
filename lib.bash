@@ -1417,3 +1417,29 @@ kubedee::configure_kubeconfig() {
     --user="${cluster_creds_name}"
   kubectl config use-context "${cluster_context_name}"
 }
+
+# Args:
+#   $1 The validated cluster name
+kubedee::create_admin_service_account() {
+  local -r cluster_name="${1}"
+  local -r kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
+  local -r sa_manifest="${kubedee_source_dir}/manifests/service-account-admin.yml"
+  kubedee::log_info "Adding 'kubedee-admin' service account ..."
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    apply -f "${sa_manifest}"
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::get_admin_service_account_token() {
+  local -r cluster_name="${1}"
+  local -r kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
+  if ! kubectl --kubeconfig "${kubeconfig}" get serviceaccount -n kube-system kubedee-admin &>/dev/null; then
+    kubedee::exit_error "No admin service account found"
+  fi
+  local sa_secret
+  sa_secret="$(kubectl --kubeconfig "${kubeconfig}" get serviceaccount -n kube-system kubedee-admin -o jsonpath='{.secrets[0].name}')"
+  local sa_token
+  sa_token="$(kubectl --kubeconfig "${kubeconfig}" get secret -n kube-system "${sa_secret}" -o jsonpath='{.data.token}')"
+  echo "${sa_token}" | base64 -d
+}
