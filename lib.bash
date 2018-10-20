@@ -901,6 +901,7 @@ EOF
 kubedee::configure_controller() {
   local -r cluster_name="${1}"
   local -r container_name="${2}"
+  local -r admission_plugins="${3}"
   local etcd_ip
   etcd_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-etcd")"
   kubedee::create_certificate_kube_controller_manager "${cluster_name}"
@@ -935,7 +936,7 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --authorization-mode=Node,RBAC \\
   --bind-address=0.0.0.0 \\
   --client-ca-file=/etc/kubernetes/ca.pem \\
-  --enable-admission-plugins=Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
+  --enable-admission-plugins=${admission_plugins} \\
   --enable-swagger-ui=true \\
   --etcd-cafile=/etc/kubernetes/ca-etcd.pem \\
   --etcd-certfile=/etc/kubernetes/etcd.pem \\
@@ -1271,6 +1272,16 @@ systemctl start kubelet
 systemctl -q enable kube-proxy
 systemctl start kube-proxy
 EOF
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::deploy_pod_security_policies() {
+  local -r cluster_name="${1}"
+  kubedee::log_info "Deploying default pod security policies ..."
+  local -r psp_manifest="${kubedee_source_dir}/manifests/pod-security-policies.yml"
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    apply -f "${psp_manifest}"
 }
 
 # Args:

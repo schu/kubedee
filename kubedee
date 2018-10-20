@@ -33,6 +33,7 @@ readonly kubedee_version="$(
 apiserver_extra_hostnames=""
 bin_dir="./_output/bin"
 create_admin_sa="false"
+install_psps=""
 kubedee_dir="${kubedee_dir:-${HOME}/.local/share/kubedee}"
 kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
 kubernetes_version=""
@@ -116,6 +117,7 @@ cmd_start() {
   local cluster_name
   cluster_name="$(kubedee::validate_name "${1}")"
   [[ -d "${kubedee_dir}/clusters/${cluster_name}" ]] || kubedee::exit_error "Found no cluster with name: ${cluster_name} - did you create it?"
+  local -r admission_plugins="Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota${install_psps:+",PodSecurityPolicy"}"
   declare -A worker_suffixes
   for ((i = 0; i < num_worker; i++)); do
     worker_suffixes[${i}]="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6 || true)"
@@ -128,12 +130,15 @@ cmd_start() {
   done
   kubedee::configure_etcd "${cluster_name}"
   kubedee::create_certificate_kubernetes "${cluster_name}" "${apiserver_extra_hostnames}"
-  kubedee::configure_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
+  kubedee::configure_controller "${cluster_name}" "kubedee-${cluster_name}-controller" "${admission_plugins}"
   for ((i = 0; i < num_worker; i++)); do
     kubedee::configure_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
   done
   kubedee::create_kubeconfig_admin "${cluster_name}"
   kubedee::configure_rbac "${cluster_name}"
+  if [[ "${install_psps}" == "true" ]]; then
+    kubedee::deploy_pod_security_policies "${cluster_name}"
+  fi
   kubedee::deploy_flannel "${cluster_name}"
   kubedee::deploy_kube_dns "${cluster_name}"
   kubedee::label_and_taint_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
@@ -253,6 +258,10 @@ main() {
       kubedee_dir="${2}"
       kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
       shift
+      shift
+      ;;
+    --install-psps)
+      install_psps="true"
       shift
       ;;
     --kubernetes-version)
