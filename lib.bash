@@ -1278,7 +1278,7 @@ EOF
 kubedee::deploy_flannel() {
   local -r cluster_name="${1}"
   kubedee::log_info "Deploying flannel ..."
-  readonly flannel_manifest="${kubedee_source_dir}/manifests/kube-flannel.yml"
+  local -r flannel_manifest="${kubedee_source_dir}/manifests/kube-flannel.yml"
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     apply -f "${flannel_manifest}"
 }
@@ -1288,7 +1288,7 @@ kubedee::deploy_flannel() {
 kubedee::deploy_kube_dns() {
   local -r cluster_name="${1}"
   kubedee::log_info "Deploying kube-dns ..."
-  readonly dns_manifest="${kubedee_source_dir}/manifests/kube-dns.yml"
+  local -r dns_manifest="${kubedee_source_dir}/manifests/kube-dns.yml"
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     apply -f "${dns_manifest}"
 }
