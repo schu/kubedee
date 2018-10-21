@@ -1197,7 +1197,7 @@ authorization:
   mode: Webhook
 clusterDomain: "cluster.local"
 clusterDNS:
-  - "10.3.0.10"
+  - "10.32.0.10"
 podCIDR: "10.20.0.0/16"
 runtimeRequestTimeout: "10m"
 tlsCertFile: "/etc/kubernetes/${container_name}.pem"
