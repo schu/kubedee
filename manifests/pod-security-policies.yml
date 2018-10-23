@@ -49,7 +49,10 @@ spec:
   hostIPC: false
   hostPID: false
   runAsUser:
-    rule: 'MustRunAsNonRoot'
+    rule: 'MustRunAs'
+    ranges:
+    - min: 1
+      max: 65535
   seLinux:
     rule: 'RunAsAny'
   supplementalGroups:
