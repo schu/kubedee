@@ -6,13 +6,23 @@ variable "hcloud_sshkeys" {
   type = "list"
 }
 
+variable "kubernetes_version" {
+	type = "string"
+	default = "v1.12.1"
+}
+
+variable "hostname" {
+	type = "string"
+	default = "kubedee.example.com"
+}
+
 provider "hcloud" {
   token = "${var.hcloud_token}"
 }
 
 resource "hcloud_server" "test" {
   count = 1
-  name = "kubedee.example.com"
+  name = "${var.hostname}"
   image = "ubuntu-18.04"
   ssh_keys = "${var.hcloud_sshkeys}"
   server_type = "cx21"
@@ -73,8 +83,7 @@ resource "hcloud_server" "test" {
       "ln -s /home/ubuntu/kubedee/kubedee bin/kubedee",
 
       # Create cluster
-      "./kubedee/scripts/download-k8s-binaries v1.11.2 k8s-binaries",
-      "./bin/kubedee up --apiserver-extra-hostnames '${hcloud_server.test.name},${hcloud_server.test.ipv4_address}' --bin-dir ./k8s-binaries/kubernetes/server/bin/ test",
+      "./bin/kubedee up --apiserver-extra-hostnames '${hcloud_server.test.name},${hcloud_server.test.ipv4_address}' --kubernetes-version '${var.kubernetes_version}' test",
 
       # Setup ingress
       "kubectl apply -f kubedee/manifests/ingress-nginx.yml",
