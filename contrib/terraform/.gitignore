@@ -2,4 +2,6 @@
 terraform.tfstate*
 .terraform.tfstate*
 
+terraform.tfvars
+
 admin.kubeconfig
