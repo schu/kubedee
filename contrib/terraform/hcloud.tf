@@ -83,7 +83,7 @@ resource "hcloud_server" "test" {
       "ln -s /home/ubuntu/kubedee/kubedee bin/kubedee",
 
       # Create cluster
-      "./bin/kubedee up --apiserver-extra-hostnames '${hcloud_server.test.name},${hcloud_server.test.ipv4_address}' --kubernetes-version '${var.kubernetes_version}' test",
+      "./bin/kubedee up --apiserver-extra-hostnames '${hcloud_server.test.name},${hcloud_server.test.ipv4_address}' --kubernetes-version '${var.kubernetes_version}' --install-psps test",
 
       # Setup ingress
       "kubectl apply -f kubedee/manifests/ingress-nginx.yml",
