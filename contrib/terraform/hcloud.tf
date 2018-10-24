@@ -79,7 +79,6 @@ resource "hcloud_server" "test" {
 
       # Setup kubedee
       "chmod +x kubedee/kubedee",
-      "chmod +x kubedee/scripts/download-k8s-binaries",
       "ln -s /home/ubuntu/kubedee/kubedee bin/kubedee",
 
       # Create cluster
