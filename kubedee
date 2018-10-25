@@ -331,6 +331,7 @@ main() {
   *)
     echo "Unknown command: ${cmd}" >&2
     echo "See \`kubedee help\` for help" >&2
+    exit 1
     ;;
   esac
 }
