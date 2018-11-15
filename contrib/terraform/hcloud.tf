@@ -26,7 +26,6 @@ resource "hcloud_server" "test" {
   image = "ubuntu-18.04"
   ssh_keys = "${var.hcloud_sshkeys}"
   server_type = "cx21"
-  datacenter = "fsn1-dc8"
   user_data = "${file("user-data.bash")}"
 
   provisioner "remote-exec" {
