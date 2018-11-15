@@ -175,6 +175,9 @@ kubedee::fetch_k8s() {
   (
     kubedee::cd_or_exit_error "${target_dir}"
     kubedee::log_info "Fetching Kubernetes ${k8s_version} ..."
+    if ! curl -fsSLI "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-amd64.tar.gz" >/dev/null; then
+      kubedee::exit_error "Kubernetes version '${k8s_version}' not found on dl.k8s.io"
+    fi
     curl -fsSL -O "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-amd64.tar.gz"
     tar -xf "kubernetes-server-linux-amd64.tar.gz" --strip-components 3 \
       "kubernetes/server/bin/"{kube-apiserver,kube-controller-manager,kubectl,kubelet,kube-proxy,kube-scheduler}
