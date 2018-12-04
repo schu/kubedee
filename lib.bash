@@ -1324,6 +1324,17 @@ kubedee::label_and_taint_controller() {
 
 # Args:
 #   $1 The validated cluster name
+#   $2 The name of the worker node
+kubedee::label_worker() {
+  local -r cluster_name="${1}"
+  local -r worker_node_name="${2}"
+  kubedee::log_info "Applying labels to ${worker_node_name} ..."
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    label node "${worker_node_name}" node-role.kubernetes.io/node=""
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::prepare_container_image() {
   local -r cluster_name="${1}"
   kubedee::log_info "Pruning old kubedee container images ..."
