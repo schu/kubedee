@@ -921,6 +921,14 @@ kubedee::configure_controller() {
 
   lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/"{kube-controller-manager.kubeconfig,kube-scheduler.kubeconfig} "${container_name}/etc/kubernetes/"
 
+  local kubescheduler_config_api_version="kubescheduler.config.k8s.io/v1alpha1"
+  local k8s_minor_version
+  k8s_minor_version="$(kubedee::k8s_minor_version "${cluster_name}")"
+  if [[ "${k8s_minor_version}" == 10* ]] ||
+    [[ "${k8s_minor_version}" == 11* ]]; then
+    kubescheduler_config_api_version="componentconfig/v1alpha1"
+  fi
+
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
@@ -995,7 +1003,7 @@ KUBE_CONTROLLER_MANAGER_UNIT
 # by all maintained versions..
 mkdir -p /etc/kubernetes/config
 cat >/etc/kubernetes/config/kube-scheduler.yaml <<'KUBE_SCHEDULER_CONFIG'
-apiVersion: componentconfig/v1alpha1
+apiVersion: ${kubescheduler_config_api_version}
 kind: KubeSchedulerConfiguration
 clientConnection:
   kubeconfig: "/etc/kubernetes/kube-scheduler.kubeconfig"
