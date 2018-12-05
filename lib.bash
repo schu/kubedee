@@ -1216,9 +1216,6 @@ tlsPrivateKeyFile: "/etc/kubernetes/${container_name}-key.pem"
 failSwapOn: false
 evictionHard: {}
 enforceNodeAllocatable: []
-featureGates:
-  MountPropagation: false
-
 
 # TODO(schu): check if issues were updated
 # https://github.com/kubernetes/kubernetes/issues/66067
