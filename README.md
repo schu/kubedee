@@ -10,7 +10,7 @@ For questions or feedback, please open an issue or join `#kubedee` on [freenode]
 
 ## Requirements
 
-* [LXD](https://github.com/lxc/lxd) (The author currently uses `stable-3.0` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source))
+* [LXD](https://github.com/lxc/lxd) (The author currently uses `lxd-3.7` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source))
   * Make sure your user is member of the `lxd` group (see `lxd --group ...`)
   * btrfs is used a storage driver currently and thus `btrfs-{progs,tools}` required
 * [cfssl](https://github.com/cloudflare/cfssl) with cfssljson
@@ -47,7 +47,7 @@ To install an upstream version, use `--kubernetes-version` to specify
 the release (Git tag) that you want to install. For example:
 
 ```
-kubedee up test --kubernetes-version v1.12.0
+kubedee up test --kubernetes-version v1.13.0
 ```
 
 To install a local build, specify the location of the binaries
@@ -85,9 +85,9 @@ etcd-0               Healthy   {"health":"true"}
 
 Current node status is (should be ready soon):
 NAME                         STATUS     ROLES     AGE       VERSION
-kubedee-test-controller      NotReady   master    24s       v1.11.2
-kubedee-test-worker-l1tdqq   NotReady   <none>    16s       v1.11.2
-kubedee-test-worker-tx8q8f   NotReady   <none>    8s        v1.11.2
+kubedee-test-controller      NotReady   master    29s       v1.13.0
+kubedee-test-worker-7458gg   NotReady   node      24s       v1.13.0
+kubedee-test-worker-y7yy3y   NotReady   node      27s       v1.13.0
 ```
 
 kubectl's current-context has been changed to the new cluster automatically.
