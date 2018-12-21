@@ -157,7 +157,11 @@ cmd_start() {
     kubedee::create_user_service_account "${cluster_name}"
   fi
   kubedee::log_success "\\nCluster ${cluster_name} started"
-  kubedee::log_success "kubectl config current-context set to kubedee-${cluster_name}\\n"
+  if [[ "${no_set_context}" == "false" ]]; then
+    kubedee::log_success "kubectl config current-context set to kubedee-${cluster_name}\\n"
+  else
+    echo
+  fi
   if [[ -n "${admin_sa}" ]]; then
     kubedee::log_info "Admin service account token can be obtained with 'kubedee admin-sa-token ${cluster_name}'"
   fi
