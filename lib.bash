@@ -1409,7 +1409,7 @@ kubedee::smoke_test() {
   while true; do
     if [[ $(date +%s) -gt ${timeout} ]]; then
       delete_smoke_test
-      kubedee::exit_error "Failed to connect to ${deployment_name} within 120 seconds"
+      kubedee::exit_error "Failed to connect to ${deployment_name} within 180 seconds"
     fi
     if curl --ipv4 --fail --silent --max-time 3 "${worker_ip}:${service_port}" | grep -q "Welcome to nginx!"; then
       break
