@@ -1379,7 +1379,8 @@ kubedee::smoke_test() {
   deployment_suffix="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6 || true)"
   local -r deployment_name="kubedee-smoke-test-${cluster_name}-${deployment_suffix}"
   kubedee::log_info "Running smoke test for cluster ${cluster_name} ..."
-  kubectl --kubeconfig "${kubeconfig}" run "${deployment_name}" --image=nginx --replicas=3
+  kubectl --kubeconfig "${kubeconfig}" create deploy "${deployment_name}" --image=nginx
+  kubectl --kubeconfig "${kubeconfig}" scale deploy "${deployment_name}" --replicas=3
   kubectl --kubeconfig "${kubeconfig}" expose deployment "${deployment_name}" --target-port=80 --port=8080 --type=NodePort
   # Pick one of the worker nodes with kube-proxy
   # running and test if the service is reachable
