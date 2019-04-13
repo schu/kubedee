@@ -1299,10 +1299,10 @@ kubedee::deploy_flannel() {
 
 # Args:
 #   $1 The validated cluster name
-kubedee::deploy_kube_dns() {
+kubedee::deploy_core_dns() {
   local -r cluster_name="${1}"
-  kubedee::log_info "Deploying kube-dns ..."
-  local -r dns_manifest="${kubedee_source_dir}/manifests/kube-dns.yml"
+  kubedee::log_info "Deploying core-dns ..."
+  local -r dns_manifest="${kubedee_source_dir}/manifests/core-dns.yml"
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     apply -f "${dns_manifest}"
 }
