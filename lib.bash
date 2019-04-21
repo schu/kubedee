@@ -294,7 +294,7 @@ kubedee::copy_runc_binaries() {
   local -r cluster_name="${1}"
   kubedee::fetch_runc
   local -r cache_dir="${kubedee_cache_dir}/runc/${kubedee_runc_version}"
-  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/runc"
 }
@@ -1147,7 +1147,7 @@ kubedee::configure_worker() {
   lxc config device add "${container_name}" binary-kube-proxy disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kube-proxy" path="/usr/local/bin/kube-proxy"
   lxc config device add "${container_name}" binary-kubectl disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kubectl" path="/usr/local/bin/kubectl"
 
-  lxc config device add "${container_name}" binary-runc disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/runc" path="/usr/local/bin/runc"
+  lxc config device add "${container_name}" binary-runc disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/bin/runc" path="/usr/bin/runc"
 
   lxc config device add "${container_name}" binary-crio disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/crio" path="/usr/local/bin/crio"
   lxc config device add "${container_name}" crio-config disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio/" path="/etc/crio/"
@@ -1179,7 +1179,7 @@ cat >/etc/systemd/system/crio.service <<'CRIO_UNIT'
 Description=CRI-O daemon
 
 [Service]
-ExecStart=/usr/local/bin/crio --runtime /usr/local/bin/runc --registry docker.io
+ExecStart=/usr/local/bin/crio --runtime /usr/bin/runc --registry docker.io
 Restart=always
 RestartSec=10s
 
