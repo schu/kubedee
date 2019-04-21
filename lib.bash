@@ -59,6 +59,7 @@ readonly kubedee_container_image="kubedee-container-image-${kubedee_version}"
 readonly kubedee_etcd_version="v3.3.12"
 readonly kubedee_runc_version="v1.0.0-rc6"
 readonly kubedee_cni_plugins_version="v0.7.5"
+readonly kubedee_crio_version="v1.14.0"
 
 readonly lxd_status_code_running=103
 
@@ -202,17 +203,16 @@ kubedee::fetch_etcd() {
 }
 
 kubedee::fetch_crio() {
-  local -r version="${1}"
-  local -r cache_dir="${kubedee_cache_dir}/crio/${version}"
+  local -r cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
   mkdir -p "${cache_dir}"
   [[ -e "${cache_dir}/crio" ]] && return
   local tmp_dir
   tmp_dir="$(mktemp -d /tmp/kubedee-XXXXXX)"
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
-    kubedee::log_info "Fetching crio ${version} ..."
-    curl -fsSL -O "https://files.schu.io/pub/cri-o/crio-amd64-${version}.tar.gz"
-    tar -xf "crio-amd64-${version}.tar.gz"
+    kubedee::log_info "Fetching crio ${kubedee_crio_version} ..."
+    curl -fsSL -O "https://files.schu.io/pub/cri-o/crio-amd64-${kubedee_crio_version}.tar.gz"
+    tar -xf "crio-amd64-${kubedee_crio_version}.tar.gz"
     kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pause seccomp.json crio.conf crictl.yaml crio-umount.conf policy.json
   )
   rm -rf "${tmp_dir}"
@@ -273,11 +273,10 @@ kubedee::k8s_minor_version() {
 #   $1 The validated cluster name
 kubedee::copy_crio_files() {
   local -r cluster_name="${1}"
-  local crio_version="v1.13.1"
   local k8s_minor_version
   k8s_minor_version="$(kubedee::k8s_minor_version "${cluster_name}")"
-  kubedee::fetch_crio "${crio_version}"
-  local -r cache_dir="${kubedee_cache_dir}/crio/${crio_version}"
+  kubedee::fetch_crio
+  local -r cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
   local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/crio"
