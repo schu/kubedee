@@ -22,7 +22,7 @@ trap cleanup EXIT
 if [[ $# -gt 0 ]]; then
   readonly k8s_versions=("$@")
 else
-  readonly k8s_versions=("v1.11.9" "v1.12.8" "v1.13.5" "v1.14.1", "v1.15.0-alpha.1")
+  readonly k8s_versions=("v1.11.9" "v1.12.8" "v1.13.5" "v1.14.1" "v1.15.0-alpha.1")
 fi
 
 readonly kubedee_dir="${tmp_dir}/kubedee"
