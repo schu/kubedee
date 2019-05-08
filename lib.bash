@@ -1165,6 +1165,12 @@ kubedee::configure_worker() {
     lxc config device add "${container_name}" "${ldev#/dev/}" unix-block source="${ldev}" path="${ldev}"
   done
 
+  # Mount the host /dev/kmsg device into the container to allow
+  # kubelet's OOM manager to do its job. Otherwise we encounter the
+  # following error:
+  # `Failed to start OOM watcher open /dev/kmsg: no such file or directory`
+  lxc config device add "${container_name}" "kmsg" unix-char source="/dev/kmsg" path="/dev/kmsg"
+
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
