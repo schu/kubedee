@@ -1,0 +1,27 @@
+image: ubuntu/18.04
+sources:
+  - https://github.com/schu/kubedee
+tasks:
+  - requirements: |
+      sudo apt-get update
+      sudo apt-get install -y curl iptables jq shellcheck snapd
+      curl -fsSL https://github.com/mvdan/sh/releases/download/v2.6.4/shfmt_v2.6.4_linux_amd64 -o /tmp/shfmt && sudo install -m 0755 /tmp/shfmt /usr/local/bin/
+      sudo snap install lxd
+      sudo usermod -a -G lxd $(whoami)
+      cd kubedee
+      sudo ln -s $PWD/kubedee /usr/local/bin/kubedee
+      sudo modprobe nf_conntrack
+      echo 65536 | sudo tee /sys/module/nf_conntrack/parameters/hashsize
+  - lint: |
+      cd kubedee
+      make lint
+  - setup: |
+      export PATH=/snap/bin:$PATH
+      lxd init --auto --storage-backend btrfs
+      curl -fsSL https://files.schu.io/pub/cfssl/cfssl-linux-amd64-1.3.2 -o /tmp/cfssl && sudo install -m 0755 /tmp/cfssl /usr/local/bin/
+      curl -fsSL https://files.schu.io/pub/cfssl/cfssljson-linux-amd64-1.3.2 -o /tmp/cfssljson && sudo install -m 0755 /tmp/cfssljson /usr/local/bin/
+      curl -fsSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl -o /tmp/kubectl && sudo install -m 0755 /tmp/kubectl /usr/local/bin/
+  - test: |
+      export PATH=/snap/bin:$PATH
+      cd kubedee
+      ./scripts/smoke-test
