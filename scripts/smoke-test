@@ -15,6 +15,9 @@ readonly tmp_dir="$(mktemp -d "/tmp/kubedee-test-XXXXXX")"
 cleanup() {
   lxc list --format csv --columns n |
     grep ^kubedee-smoke-test | xargs -r lxc delete -f || true
+  lxc network list --format json |
+    jq -r '[ .[] | select( (.name | contains("kubedee")) and (.used_by | length == 0) )] | .[].name' |
+    xargs -r -I '{}' lxc network delete {} || true
   rm -rf "${tmp_dir}"
 }
 trap cleanup EXIT
