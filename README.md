@@ -1,4 +1,4 @@
-# kubedee (beta)
+# kubedee
 
 [![builds.sr.ht status](https://builds.sr.ht/~schu/kubedee.svg)](https://builds.sr.ht/~schu/kubedee?)
 
