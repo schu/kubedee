@@ -1,5 +1,7 @@
 # kubedee (beta)
 
+[![builds.sr.ht status](https://builds.sr.ht/~schu/kubedee.svg)](https://builds.sr.ht/~schu/kubedee?)
+
 Fast multi-node Kubernetes (>= 1.11) development and test clusters on [LXD](https://github.com/lxc/lxd).
 
 Under the hood, [CRI-O](https://github.com/kubernetes-incubator/cri-o) is used
