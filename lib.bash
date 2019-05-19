@@ -1340,6 +1340,18 @@ kubedee::label_worker() {
 
 # Args:
 #   $1 The validated cluster name
+#   $2 The name of the worker node
+kubedee::wait_for_worker() {
+  local -r cluster_name="${1}"
+  local -r worker_node_name="${2}"
+  until kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get node "${worker_node_name}" &>/dev/null; do
+    kubedee::log_info "Waiting for node ${cluster_name} to be registered ..."
+    sleep 3
+  done
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::prepare_container_image() {
   local -r cluster_name="${1}"
   kubedee::log_info "Pruning old kubedee container images ..."

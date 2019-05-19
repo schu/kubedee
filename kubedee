@@ -145,6 +145,9 @@ cmd_start() {
   kubedee::deploy_core_dns "${cluster_name}"
   kubedee::label_and_taint_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
   for ((i = 0; i < num_worker; i++)); do
+    kubedee::wait_for_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
+  done
+  for ((i = 0; i < num_worker; i++)); do
     kubedee::label_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
   done
   [[ "${no_set_context}" == "false" ]] && kubedee::configure_kubeconfig "${cluster_name}"
