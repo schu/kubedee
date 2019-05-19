@@ -1,0 +1,27 @@
+image: fedora/30
+sources:
+  - https://github.com/schu/kubedee
+tasks:
+  - requirements: |
+      # Avoid selinux policy error; for details see
+      # https://gist.github.com/schu/59b253481b2a26d0e9463ea01449768b
+      sudo mount -t tmpfs tmpfs /sys/fs/selinux
+      sudo dnf install -y curl jq snapd tar
+      # Wait for snapd to be "seeded", otherwise we encounter
+      # "error: too early for operation, device not yet seeded or device model not acknowledged"
+      sudo systemctl enable snapd.seeded
+      sudo systemctl start snapd.seeded
+      sudo snap install lxd
+      sudo usermod -a -G lxd $(whoami)
+      cd kubedee
+      sudo ln -s $PWD/kubedee /usr/local/bin/kubedee
+      curl -fsSL https://files.schu.io/pub/cfssl/cfssl-linux-amd64-1.3.2 -o /tmp/cfssl && sudo install -m 0755 /tmp/cfssl /usr/local/bin/
+      curl -fsSL https://files.schu.io/pub/cfssl/cfssljson-linux-amd64-1.3.2 -o /tmp/cfssljson && sudo install -m 0755 /tmp/cfssljson /usr/local/bin/
+      curl -fsSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl -o /tmp/kubectl && sudo install -m 0755 /tmp/kubectl /usr/local/bin/
+  - setup: |
+      export PATH=/var/lib/snapd/snap/bin:$PATH
+      lxd init --auto --storage-backend btrfs
+  - test: |
+      export PATH=/var/lib/snapd/snap/bin:$PATH
+      cd kubedee
+      ./scripts/smoke-test
