@@ -434,6 +434,36 @@ EOF
 
 # Args:
 #   $1 The validated cluster name
+kubedee::create_certificate_authority_aggregation() {
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  mkdir -p "${target_dir}"
+  (
+    kubedee::cd_or_exit_error "${target_dir}"
+    kubedee::log_info "Generating certificate authority for Kubernetes Front Proxy ..."
+    cat <<EOF | cfssl gencert -initca - | cfssljson -bare ca-aggregation
+{
+  "CN": "Kubernetes Front Proxy CA",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "DE",
+      "L": "Berlin",
+      "O": "Kubernetes Front Proxy",
+      "OU": "CA",
+      "ST": "Berlin"
+    }
+  ]
+}
+EOF
+  )
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::create_certificate_authority_etcd() {
   local -r cluster_name="${1}"
   local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
@@ -483,6 +513,36 @@ kubedee::create_certificate_admin() {
       "C": "DE",
       "L": "Berlin",
       "O": "system:masters",
+      "OU": "kubedee",
+      "ST": "Berlin"
+    }
+  ]
+}
+EOF
+  )
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::create_certificate_aggregation_client() {
+  local -r cluster_name="${1}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/certificates"
+  mkdir -p "${target_dir}"
+  (
+    kubedee::cd_or_exit_error "${target_dir}"
+    kubedee::log_info "Generating aggregation client certificate ..."
+    cat <<EOF | cfssl gencert -ca=ca-aggregation.pem -ca-key=ca-aggregation-key.pem -config=ca-config.json -profile=kubernetes - | cfssljson -bare aggregation-client
+{
+  "CN": "kube-apiserver",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "DE",
+      "L": "Berlin",
+      "O": "kube-apiserver",
       "OU": "kubedee",
       "ST": "Berlin"
     }
@@ -896,7 +956,7 @@ kubedee::configure_controller() {
   lxc config device add "${container_name}" binary-kube-controller-manager disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kube-controller-manager" path="/usr/local/bin/kube-controller-manager"
   lxc config device add "${container_name}" binary-kube-scheduler disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kube-scheduler" path="/usr/local/bin/kube-scheduler"
 
-  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{kubernetes.pem,kubernetes-key.pem,ca.pem,ca-key.pem,etcd.pem,etcd-key.pem,ca-etcd.pem} "${container_name}/etc/kubernetes/"
+  lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{kubernetes.pem,kubernetes-key.pem,ca.pem,ca-key.pem,etcd.pem,etcd-key.pem,ca-etcd.pem,ca-aggregation.pem,aggregation-client.pem,aggregation-client-key.pem} "${container_name}/etc/kubernetes/"
 
   lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/"{kube-controller-manager.kubeconfig,kube-scheduler.kubeconfig} "${container_name}/etc/kubernetes/"
 
@@ -943,6 +1003,12 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --service-node-port-range=30000-32767 \\
   --tls-cert-file=/etc/kubernetes/kubernetes.pem \\
   --tls-private-key-file=/etc/kubernetes/kubernetes-key.pem \\
+  --proxy-client-cert-file=/etc/kubernetes/aggregation-client.pem \\
+  --proxy-client-key-file=/etc/kubernetes/aggregation-client-key.pem \\
+  --requestheader-client-ca-file=/etc/kubernetes/ca-aggregation.pem \\
+  --requestheader-extra-headers-prefix=X-Remote-Extra- \\
+  --requestheader-group-headers=X-Remote-Group \\
+  --requestheader-username-headers=X-Remote-User \\
   --v=2
 Restart=on-failure
 RestartSec=5
