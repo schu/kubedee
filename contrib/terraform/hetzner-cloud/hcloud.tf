@@ -52,19 +52,15 @@ resource "hcloud_server" "test" {
   }
 
   provisioner "file" {
-    source = "../../kubedee"
+    source = "../../../kubedee"
     destination = "/home/ubuntu/kubedee/kubedee"
   }
   provisioner "file" {
-    source = "../../lib.bash"
+    source = "../../../lib.bash"
     destination = "/home/ubuntu/kubedee/lib.bash"
   }
   provisioner "file" {
-    source = "../../manifests"
-    destination = "/home/ubuntu/kubedee/"
-  }
-  provisioner "file" {
-    source = "../../scripts"
+    source = "../../../manifests"
     destination = "/home/ubuntu/kubedee/"
   }
 
