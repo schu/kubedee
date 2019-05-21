@@ -98,6 +98,8 @@ cmd_create() {
   kubedee::copy_cni_plugins "${cluster_name}"
   kubedee::create_certificate_authority_etcd "${cluster_name}"
   kubedee::create_certificate_authority_k8s "${cluster_name}"
+  kubedee::create_certificate_authority_aggregation "${cluster_name}"
+  kubedee::create_certificate_aggregation_client "${cluster_name}"
   kubedee::create_certificate_admin "${cluster_name}"
 }
 
