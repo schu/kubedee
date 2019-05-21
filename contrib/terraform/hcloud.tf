@@ -8,7 +8,7 @@ variable "hcloud_sshkeys" {
 
 variable "kubernetes_version" {
 	type = "string"
-	default = "v1.12.1"
+	default = "v1.14.2"
 }
 
 variable "hostname" {
