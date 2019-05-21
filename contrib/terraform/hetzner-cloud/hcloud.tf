@@ -8,7 +8,7 @@ variable "hcloud_sshkeys" {
 
 variable "kubernetes_version" {
 	type = "string"
-	default = "v1.12.1"
+	default = "v1.14.2"
 }
 
 variable "hostname" {
@@ -52,19 +52,15 @@ resource "hcloud_server" "test" {
   }
 
   provisioner "file" {
-    source = "../../kubedee"
+    source = "../../../kubedee"
     destination = "/home/ubuntu/kubedee/kubedee"
   }
   provisioner "file" {
-    source = "../../lib.bash"
+    source = "../../../lib.bash"
     destination = "/home/ubuntu/kubedee/lib.bash"
   }
   provisioner "file" {
-    source = "../../manifests"
-    destination = "/home/ubuntu/kubedee/"
-  }
-  provisioner "file" {
-    source = "../../scripts"
+    source = "../../../manifests"
     destination = "/home/ubuntu/kubedee/"
   }
 
@@ -81,7 +77,7 @@ resource "hcloud_server" "test" {
       "ln -s /home/ubuntu/kubedee/kubedee bin/kubedee",
 
       # Create cluster
-      "./bin/kubedee up --apiserver-extra-hostnames '${hcloud_server.test.name},${hcloud_server.test.ipv4_address}' --kubernetes-version '${var.kubernetes_version}' --install-psps test",
+      "./bin/kubedee up --apiserver-extra-hostnames '${hcloud_server.test.name},${hcloud_server.test.ipv4_address}' --kubernetes-version '${var.kubernetes_version}' test",
 
       # Setup ingress
       "kubectl apply -f kubedee/manifests/ingress-nginx.yml",
