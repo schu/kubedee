@@ -1484,7 +1484,7 @@ kubedee::smoke_test() {
       break
     else
       kubedee::log_info "${deployment_name} not ready yet"
-      sleep 3
+      sleep 5
     fi
   done
   kubedee::log_success "Successfully connected to ${deployment_name}"
