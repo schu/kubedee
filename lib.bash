@@ -8,22 +8,22 @@
 
 kubedee::log_info() {
   local -r message="${1:-""}"
-  echo -e "\\033[1;37m${message}\\033[0m"
+  echo -e "\\033[1;37m==> ${message}\\033[0m"
 }
 
 kubedee::log_success() {
   local -r message="${1:-""}"
-  echo -e "\\033[1;32m${message}\\033[0m"
+  echo -e "\\033[1;32m==> ${message}\\033[0m"
 }
 
 kubedee::log_warn() {
   local -r message="${1:-""}"
-  echo -e "\\033[1;33m${message}\\033[0m" >&2
+  echo -e "\\033[1;33m==> ${message}\\033[0m" >&2
 }
 
 kubedee::log_error() {
   local -r message="${1:-""}"
-  echo -e "\\033[1;31m${message}\\033[0m" >&2
+  echo -e "\\033[1;31m==> ${message}\\033[0m" >&2
 }
 
 kubedee::exit_error() {
