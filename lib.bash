@@ -58,7 +58,7 @@ readonly kubedee_base_image="ubuntu:18.04"
 readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._]/-}"
 readonly kubedee_etcd_version="v3.3.13"
 readonly kubedee_runc_version="v1.0.0-rc8"
-readonly kubedee_cni_plugins_version="v0.7.5"
+readonly kubedee_cni_plugins_version="v0.8.0"
 readonly kubedee_crio_version="v1.14.0"
 
 readonly lxd_status_code_running=103
@@ -243,9 +243,9 @@ kubedee::fetch_cni_plugins() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching cni plugins ${kubedee_cni_plugins_version} ..."
-    curl -fsSL -O "https://github.com/containernetworking/plugins/releases/download/${kubedee_cni_plugins_version}/cni-plugins-amd64-${kubedee_cni_plugins_version}.tgz"
-    tar -xf "cni-plugins-amd64-${kubedee_cni_plugins_version}.tgz"
-    rm -rf "cni-plugins-amd64-${kubedee_cni_plugins_version}.tgz"
+    curl -fsSL -O "https://github.com/containernetworking/plugins/releases/download/${kubedee_cni_plugins_version}/cni-plugins-linux-amd64-${kubedee_cni_plugins_version}.tgz"
+    tar -xf "cni-plugins-linux-amd64-${kubedee_cni_plugins_version}.tgz"
+    rm -rf "cni-plugins-linux-amd64-${kubedee_cni_plugins_version}.tgz"
     kubedee::copyl_or_exit_error "${cache_dir}/" ./*
   )
   rm -rf "${tmp_dir}"
