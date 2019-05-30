@@ -1287,7 +1287,6 @@ Requires=crio.service
 
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
-  --allow-privileged=true \\
   --config=/etc/kubernetes/config/kubelet.yaml \\
   --container-runtime=remote \\
   --container-runtime-endpoint=unix:///var/run/crio/crio.sock \\
