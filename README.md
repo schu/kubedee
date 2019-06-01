@@ -1,3 +1,5 @@
+<img alt="Certified Kubernetes logo" width="100px" align="right" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/kubernetes/certified-kubernetes/versionless/pantone/certified-kubernetes-pantone.png">
+
 ![kubedee logo](docs/logo/kubedee.png)
 
 [![builds.sr.ht status](https://builds.sr.ht/~schu/kubedee.svg)](https://builds.sr.ht/~schu/kubedee?)
