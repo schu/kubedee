@@ -4,7 +4,7 @@
 
 [![builds.sr.ht status](https://builds.sr.ht/~schu/kubedee.svg)](https://builds.sr.ht/~schu/kubedee?)
 
-Fast multi-node Kubernetes (>= 1.11) development and test clusters on [LXD](https://github.com/lxc/lxd).
+Fast multi-node Kubernetes (>= 1.12) development and test clusters on [LXD](https://github.com/lxc/lxd).
 
 Under the hood, [CRI-O](https://github.com/kubernetes-incubator/cri-o) is used
 as container runtime and [Flannel](https://github.com/coreos/flannel) for
@@ -14,7 +14,7 @@ For questions or feedback, please open an issue or join `#kubedee` on [freenode]
 
 ## Requirements
 
-* [LXD](https://github.com/lxc/lxd) (The author currently uses `lxd-3.7` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source))
+* [LXD](https://github.com/lxc/lxd) (I'm currently using `lxd-3.13` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source), installation via snap should work just as well)
   * Make sure your user is member of the `lxd` group (see `lxd --group ...`)
   * btrfs is used a storage driver currently and thus `btrfs-{progs,tools}` required
 * [cfssl](https://github.com/cloudflare/cfssl) with cfssljson
@@ -51,7 +51,7 @@ To install an upstream version, use `--kubernetes-version` to specify
 the release (Git tag) that you want to install. For example:
 
 ```
-kubedee up test --kubernetes-version v1.13.0
+kubedee up test --kubernetes-version v1.14.2
 ```
 
 To install a local build, specify the location of the binaries
@@ -75,23 +75,23 @@ less than 60 seconds for a four node cluster (etcd, controller, 2x worker).
 ```
 [...]
 
-Cluster test started
-kubectl config current-context set to kubedee-test
+==> Cluster test started
+==> kubectl config current-context set to kubedee-test
 
-Cluster nodes can be accessed with 'lxc exec <name> bash'
-Cluster files can be found in '/home/schu/.local/share/kubedee/clusters/test'
+==> Cluster nodes can be accessed with 'lxc exec <name> bash'
+==> Cluster files can be found in '/home/schu/.local/share/kubedee/clusters/test'
 
-Current component status is (should be healthy):
+==> Current component status is (should be healthy):
 NAME                 STATUS    MESSAGE             ERROR
 scheduler            Healthy   ok
 controller-manager   Healthy   ok
 etcd-0               Healthy   {"health":"true"}
 
-Current node status is (should be ready soon):
-NAME                         STATUS     ROLES     AGE       VERSION
-kubedee-test-controller      NotReady   master    29s       v1.13.0
-kubedee-test-worker-7458gg   NotReady   node      24s       v1.13.0
-kubedee-test-worker-y7yy3y   NotReady   node      27s       v1.13.0
+==> Current node status is (should be ready soon):
+NAME                         STATUS     ROLES    AGE   VERSION
+kubedee-test-controller      NotReady   master   47s   v1.14.2
+kubedee-test-worker-6s727f   NotReady   node     42s   v1.14.2
+kubedee-test-worker-ybg2lw   NotReady   node     32s   v1.14.2
 ```
 
 kubectl's current-context has been changed to the new cluster automatically.
