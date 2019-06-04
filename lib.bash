@@ -179,10 +179,9 @@ kubedee::fetch_k8s() {
     if ! curl -fsSLI "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-amd64.tar.gz" >/dev/null; then
       kubedee::exit_error "Kubernetes version '${k8s_version}' not found on dl.k8s.io"
     fi
-    curl -fsSL -O "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-amd64.tar.gz"
-    tar -xf "kubernetes-server-linux-amd64.tar.gz" --strip-components 3 \
-      "kubernetes/server/bin/"{kube-apiserver,kube-controller-manager,kubectl,kubelet,kube-proxy,kube-scheduler}
-    rm -f "kubernetes-server-linux-amd64.tar.gz"
+    curl -fsSL -o - "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-amd64.tar.gz" |
+      tar -xzf - --strip-components 3 \
+        "kubernetes/server/bin/"{kube-apiserver,kube-controller-manager,kubectl,kubelet,kube-proxy,kube-scheduler}
   )
 }
 
@@ -195,8 +194,8 @@ kubedee::fetch_etcd() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching etcd ${kubedee_etcd_version} ..."
-    curl -fsSL -O "https://github.com/coreos/etcd/releases/download/${kubedee_etcd_version}/etcd-${kubedee_etcd_version}-linux-amd64.tar.gz"
-    tar -xf "etcd-${kubedee_etcd_version}-linux-amd64.tar.gz" --strip-components 1
+    curl -fsSL -o - "https://github.com/coreos/etcd/releases/download/${kubedee_etcd_version}/etcd-${kubedee_etcd_version}-linux-amd64.tar.gz" |
+      tar -xzf - --strip-components 1
     kubedee::copyl_or_exit_error "${cache_dir}/" etcd etcdctl
   )
   rm -rf "${tmp_dir}"
@@ -211,8 +210,8 @@ kubedee::fetch_crio() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching crio ${kubedee_crio_version} ..."
-    curl -fsSL -O "https://files.schu.io/pub/cri-o/crio-amd64-${kubedee_crio_version}.tar.gz"
-    tar -xf "crio-amd64-${kubedee_crio_version}.tar.gz"
+    curl -fsSL -o - "https://files.schu.io/pub/cri-o/crio-amd64-${kubedee_crio_version}.tar.gz" |
+      tar -xzf -
     kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pause seccomp.json crio.conf crictl.yaml crio-umount.conf policy.json
   )
   rm -rf "${tmp_dir}"
@@ -243,9 +242,8 @@ kubedee::fetch_cni_plugins() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching cni plugins ${kubedee_cni_plugins_version} ..."
-    curl -fsSL -O "https://github.com/containernetworking/plugins/releases/download/${kubedee_cni_plugins_version}/cni-plugins-linux-amd64-${kubedee_cni_plugins_version}.tgz"
-    tar -xf "cni-plugins-linux-amd64-${kubedee_cni_plugins_version}.tgz"
-    rm -rf "cni-plugins-linux-amd64-${kubedee_cni_plugins_version}.tgz"
+    curl -fsSL -o - "https://github.com/containernetworking/plugins/releases/download/${kubedee_cni_plugins_version}/cni-plugins-linux-amd64-${kubedee_cni_plugins_version}.tgz" |
+      tar -xzf -
     kubedee::copyl_or_exit_error "${cache_dir}/" ./*
   )
   rm -rf "${tmp_dir}"
