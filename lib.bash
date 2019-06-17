@@ -1409,11 +1409,12 @@ set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get upgrade -y
 
 # crio requires libgpgme11
 # helm requires socat
 apt-get install -y libgpgme11 socat
+
+rm -rf /var/cache/apt
 EOF
   lxc snapshot "${kubedee_container_image}-setup" snap
   lxc publish "${kubedee_container_image}-setup/snap" --alias "${kubedee_container_image}" kubedee-version="${kubedee_version}"
