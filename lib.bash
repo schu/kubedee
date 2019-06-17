@@ -1423,6 +1423,7 @@ kubedee::prepare_container_image() {
   cat <<'EOF' | lxc exec "${kubedee_container_image}-setup" bash
 set -euo pipefail
 
+export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get upgrade -y
 
