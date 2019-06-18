@@ -1210,7 +1210,7 @@ kubedee::configure_worker() {
   # Mount the host loop devices into the container to allow the kubelet
   # to gather rootfs info when the host root is on a loop device
   # (e.g. `/dev/mapper/c--vg-root on /dev/loop1 type ext4 ...`)
-  for ldev in /dev/loop[0-9]; do
+  for ldev in  $(find /dev/ -maxdepth 1 -type b -regex '.*/loop[0-9]+'); do
     lxc config device add "${container_name}" "${ldev#/dev/}" unix-block source="${ldev}" path="${ldev}"
   done
 
