@@ -58,7 +58,7 @@ readonly kubedee_base_image="ubuntu:18.04"
 readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._]/-}"
 readonly kubedee_etcd_version="v3.3.14"
 readonly kubedee_runc_version="v1.0.0-rc8"
-readonly kubedee_cni_plugins_version="v0.8.0"
+readonly kubedee_cni_plugins_version="v0.8.2"
 readonly kubedee_crio_version="v1.14.0"
 
 readonly lxd_status_code_running=103
