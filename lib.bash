@@ -56,10 +56,10 @@ kubedee::exit_error() {
 
 readonly kubedee_base_image="ubuntu:18.04"
 readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._]/-}"
-readonly kubedee_etcd_version="v3.3.13"
+readonly kubedee_etcd_version="v3.3.14"
 readonly kubedee_runc_version="v1.0.0-rc8"
-readonly kubedee_cni_plugins_version="v0.8.0"
-readonly kubedee_crio_version="v1.14.0"
+readonly kubedee_cni_plugins_version="v0.8.2"
+readonly kubedee_crio_version="v1.15.0"
 
 readonly lxd_status_code_running=103
 
@@ -212,7 +212,7 @@ kubedee::fetch_crio() {
     kubedee::log_info "Fetching crio ${kubedee_crio_version} ..."
     curl -fsSL -o - "https://files.schu.io/pub/cri-o/crio-amd64-${kubedee_crio_version}.tar.gz" |
       tar -xzf -
-    kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pause seccomp.json crio.conf crictl.yaml crio-umount.conf policy.json
+    kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pause crio.conf crictl.yaml crio-umount.conf policy.json
   )
   rm -rf "${tmp_dir}"
 }
@@ -283,7 +283,7 @@ kubedee::copy_crio_files() {
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{pause,conmon}
   target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio"
   mkdir -p "${target_dir}/"
-  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{seccomp.json,crio.conf,crictl.yaml,crio-umount.conf,policy.json}
+  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{crio.conf,crictl.yaml,crio-umount.conf,policy.json}
 }
 
 # Args:
