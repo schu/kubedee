@@ -1,0 +1,64 @@
+#!/bin/bash
+
+set -euo pipefail
+set -x
+
+readonly out_dir="/tmp/crio/build"
+
+mkdir -p "${out_dir}"
+
+lxc launch ubuntu:18.04 build-crio
+
+readonly uid="$(id -u)"
+readonly gid="$(id -g)"
+
+# Ensure write access to shared folders as explained in
+# https://development.robinwinslow.uk/2019/02/05/learning-lxd/
+#
+# On the host, run the following commands once:
+# `echo "root:$(id -u):1" | sudo tee -a /etc/subuid`
+# `echo "root:$(id -g):1" | sudo tee -a /etc/subgid`
+lxc config set build-crio raw.idmap "both ${uid} ${gid}"
+lxc restart -f build-crio
+
+lxc config device add build-crio crio-source disk "source=${PWD}" "path=/go/src/github.com/cri-o/cri-o"
+lxc config device add build-crio crio-build disk "source=${out_dir}" "path=/crio-build"
+
+cat <<EOF | lxc exec build-crio bash
+set -euo pipefail
+set -x
+
+sleep 3 # wait for network
+
+apt-get update
+apt-get install -y --no-install-recommends \
+  build-essential \
+  curl \
+  gzip \
+  libglib2.0-dev \
+  libseccomp-dev \
+  libsystemd-dev \
+  make \
+  pkg-config \
+  tar
+
+curl -Lo /tmp/go.tgz 'https://dl.google.com/go/go1.12.9.linux-amd64.tar.gz'
+tar -C /usr/local -xzf /tmp/go.tgz
+export PATH="\$PATH:/usr/local/go/bin"
+
+pushd /go/src/github.com/cri-o/cri-o
+
+export GOPATH=/go
+
+make
+
+./bin/crio --version
+
+cp \
+  bin/* \
+  crictl.yaml \
+  crio.conf \
+  crio-umount.conf \
+  test/policy.json \
+  /crio-build
+EOF
