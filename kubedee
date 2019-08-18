@@ -13,8 +13,6 @@ readonly kubedee_source_dir="$(cd -P "$(dirname "${bash_source}")" && pwd)"
 
 readonly kubedee_config_dir="${HOME}/.config/kubedee"
 
-# TODO(schu): check requirements
-
 if [[ -f "${kubedee_config_dir}/config" ]]; then
   # shellcheck source=/dev/null
   source "${kubedee_config_dir}/config"
