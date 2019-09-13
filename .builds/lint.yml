@@ -4,7 +4,7 @@ sources:
 tasks:
   - requirements: |
       sudo apt-get update
-      sudo apt-get install -y curl shellcheck
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl shellcheck
       curl -fsSL https://github.com/mvdan/sh/releases/download/v2.6.4/shfmt_v2.6.4_linux_amd64 -o /tmp/shfmt && sudo install -m 0755 /tmp/shfmt /usr/local/bin/
   - lint: |
       cd kubedee
