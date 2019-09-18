@@ -143,9 +143,10 @@ cmd_start() {
   fi
   kubedee::deploy_flannel "${cluster_name}"
   kubedee::deploy_core_dns "${cluster_name}"
+  kubedee::wait_for_node "${cluster_name}" "kubedee-${cluster_name}-controller"
   kubedee::label_and_taint_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
   for ((i = 0; i < num_worker; i++)); do
-    kubedee::wait_for_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
+    kubedee::wait_for_node "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
   done
   for ((i = 0; i < num_worker; i++)); do
     kubedee::label_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"

@@ -4,7 +4,7 @@ sources:
 tasks:
   - requirements: |
       sudo apt-get update
-      sudo apt-get install -y curl jq snapd
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl jq snapd
       sudo snap install lxd
       sudo usermod -a -G lxd $(whoami)
       cd kubedee

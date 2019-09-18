@@ -59,7 +59,7 @@ readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._
 readonly kubedee_etcd_version="v3.4.0"
 readonly kubedee_runc_version="v1.0.0-rc8"
 readonly kubedee_cni_plugins_version="v0.8.2"
-readonly kubedee_crio_version="v1.15.0"
+readonly kubedee_crio_version="v1.15.2"
 
 readonly lxd_status_code_running=103
 
@@ -1364,20 +1364,20 @@ kubedee::label_and_taint_controller() {
 #   $2 The name of the worker node
 kubedee::label_worker() {
   local -r cluster_name="${1}"
-  local -r worker_node_name="${2}"
-  kubedee::log_info "Applying labels to ${worker_node_name} ..."
+  local -r node_name="${2}"
+  kubedee::log_info "Applying labels to ${node_name} ..."
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
-    label node "${worker_node_name}" node-role.kubernetes.io/node=""
+    label node "${node_name}" node-role.kubernetes.io/node=""
 }
 
 # Args:
 #   $1 The validated cluster name
 #   $2 The name of the worker node
-kubedee::wait_for_worker() {
+kubedee::wait_for_node() {
   local -r cluster_name="${1}"
-  local -r worker_node_name="${2}"
-  until kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get node "${worker_node_name}" &>/dev/null; do
-    kubedee::log_info "Waiting for node ${cluster_name} to be registered ..."
+  local -r node_name="${2}"
+  until kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get node "${node_name}" &>/dev/null; do
+    kubedee::log_info "Waiting for node ${node_name} to be registered ..."
     sleep 3
   done
 }
@@ -1409,11 +1409,12 @@ set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get upgrade -y
 
 # crio requires libgpgme11
 # helm requires socat
 apt-get install -y libgpgme11 socat
+
+rm -rf /var/cache/apt
 EOF
   lxc snapshot "${kubedee_container_image}-setup" snap
   lxc publish "${kubedee_container_image}-setup/snap" --alias "${kubedee_container_image}" kubedee-version="${kubedee_version}"
