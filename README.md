@@ -4,7 +4,7 @@
 
 <img alt="Certified Kubernetes logo" width="100px" align="right" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/kubernetes/certified-kubernetes/versionless/pantone/certified-kubernetes-pantone.png">
 
-Fast multi-node Kubernetes (>= 1.12) development and test clusters on [LXD](https://github.com/lxc/lxd).
+Fast multi-node Kubernetes (>= 1.14) development and test clusters on [LXD](https://github.com/lxc/lxd).
 
 Under the hood, [CRI-O](https://github.com/kubernetes-incubator/cri-o) is used
 as container runtime and [Flannel](https://github.com/coreos/flannel) for
@@ -14,7 +14,7 @@ For questions or feedback, please open an issue or join `#kubedee` on [freenode]
 
 ## Requirements
 
-* [LXD](https://github.com/lxc/lxd) (I'm currently using `lxd-3.13` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source), installation via snap should work just as well)
+* [LXD](https://github.com/lxc/lxd) (I'm currently using `lxd-3.17` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source), installation via snap should work just as well)
   * Make sure your user is member of the `lxd` group (see `lxd --group ...`)
   * btrfs is used a storage driver currently and thus `btrfs-{progs,tools}` required
 * [cfssl](https://github.com/cloudflare/cfssl) with cfssljson
