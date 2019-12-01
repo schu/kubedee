@@ -28,7 +28,7 @@ cat <<EOF | lxc exec build-crio bash
 set -euo pipefail
 set -x
 
-sleep 3 # wait for network
+until nc -w 1 -z ipschwein.de 80 &>/dev/null; do sleep 3; done # wait for network
 
 apt-get update
 apt-get install -y --no-install-recommends \
