@@ -59,7 +59,7 @@ readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._
 readonly kubedee_etcd_version="v3.4.3"
 readonly kubedee_runc_version="v1.0.0-rc9"
 readonly kubedee_cni_plugins_version="v0.8.3"
-readonly kubedee_crio_version="v1.15.2"
+readonly kubedee_crio_version="v1.16.1"
 
 readonly lxd_status_code_running=103
 
