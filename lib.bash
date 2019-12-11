@@ -268,10 +268,10 @@ kubedee::copy_crio_files() {
   local -r cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
   local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
-  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/crio"
+  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{crio,conmon}
   target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/libexec/crio"
   mkdir -p "${target_dir}"
-  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{pause,conmon}
+  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/pause"
   target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio"
   mkdir -p "${target_dir}/"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{crio.conf,crictl.yaml,crio-umount.conf,policy.json}
@@ -1181,6 +1181,7 @@ kubedee::configure_worker() {
   lxc config device add "${container_name}" binary-runc disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/bin/runc" path="/usr/bin/runc"
 
   lxc config device add "${container_name}" binary-crio disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/crio" path="/usr/local/bin/crio"
+  lxc config device add "${container_name}" binary-conmon disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/conmon" path="/usr/local/bin/conmon"
   lxc config device add "${container_name}" crio-config disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio/" path="/etc/crio/"
   lxc config device add "${container_name}" crio-libexec disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/libexec/crio/" path="/usr/local/libexec/crio/"
 
