@@ -28,7 +28,7 @@ cat <<EOF | lxc exec build-crio bash
 set -euo pipefail
 set -x
 
-sleep 3 # wait for network
+until nc -w 1 -z ipschwein.de 80 &>/dev/null; do sleep 3; done # wait for network
 
 apt-get update
 apt-get install -y --no-install-recommends \
@@ -42,7 +42,7 @@ apt-get install -y --no-install-recommends \
   pkg-config \
   tar
 
-curl -Lo /tmp/go.tgz 'https://dl.google.com/go/go1.13.linux-amd64.tar.gz'
+curl -Lo /tmp/go.tgz 'https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz'
 tar -C /usr/local -xzf /tmp/go.tgz
 export PATH="\$PATH:/usr/local/go/bin"
 
