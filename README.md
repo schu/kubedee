@@ -4,7 +4,7 @@
 
 <img alt="Certified Kubernetes logo" width="100px" align="right" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/kubernetes/certified-kubernetes/versionless/pantone/certified-kubernetes-pantone.png">
 
-Fast multi-node Kubernetes (>= 1.14) development and test clusters on [LXD](https://github.com/lxc/lxd).
+Fast multi-node Kubernetes (>= 1.16) development and test clusters on [LXD](https://github.com/lxc/lxd).
 
 Under the hood, [CRI-O](https://github.com/kubernetes-incubator/cri-o) is used
 as container runtime and [Flannel](https://github.com/coreos/flannel) for
@@ -14,9 +14,9 @@ For questions or feedback, please open an issue or join `#kubedee` on [freenode]
 
 ## Requirements
 
-* [LXD](https://github.com/lxc/lxd) (I'm currently using `lxd-3.17` [installed from source](https://lxd.readthedocs.io/en/latest/#installing-lxd-from-source), installation via snap should work just as well)
+* [LXD](https://github.com/lxc/lxd)
   * Make sure your user is member of the `lxd` group (see `lxd --group ...`)
-  * btrfs is used a storage driver currently and thus `btrfs-{progs,tools}` required
+  * btrfs is used a storage driver currently and required
 * [cfssl](https://github.com/cloudflare/cfssl) with cfssljson
 * [jq](https://stedolan.github.io/jq/)
 * kubectl
@@ -51,7 +51,7 @@ To install an upstream version, use `--kubernetes-version` to specify
 the release (Git tag) that you want to install. For example:
 
 ```
-kubedee up test --kubernetes-version v1.14.2
+kubedee up test --kubernetes-version v1.18.0-alpha.1
 ```
 
 To install a local build, specify the location of the binaries
@@ -89,9 +89,9 @@ etcd-0               Healthy   {"health":"true"}
 
 ==> Current node status is (should be ready soon):
 NAME                         STATUS     ROLES    AGE   VERSION
-kubedee-test-controller      NotReady   master   47s   v1.14.2
-kubedee-test-worker-6s727f   NotReady   node     42s   v1.14.2
-kubedee-test-worker-ybg2lw   NotReady   node     32s   v1.14.2
+kubedee-test-controller      NotReady   master   40s   v1.18.0-alpha.1
+kubedee-test-worker-8e570a   NotReady   node     34s   v1.18.0-alpha.1
+kubedee-test-worker-pn26h5   NotReady   node     29s   v1.18.0-alpha.1
 ```
 
 kubectl's current-context has been changed to the new cluster automatically.
