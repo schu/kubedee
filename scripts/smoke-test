@@ -41,4 +41,8 @@ for v in "${k8s_versions[@]}"; do
   kdee up --kubernetes-version "${v}" "${cluster_name}"
   kdee smoke-test "${cluster_name}"
   kdee delete "${cluster_name}"
+
+  # Delete Kubernetes binaries in between to save disk space
+  # (and make smoke-test work on sourcehut)
+  rm -rf "${kubedee_dir}/cache/"*"/kubernetes/"
 done
