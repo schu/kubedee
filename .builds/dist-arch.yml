@@ -1,0 +1,29 @@
+image: archlinux
+sources:
+  - https://github.com/schu/kubedee
+tasks:
+  - requirements: |
+      sudo pacman -Sy --noconfirm jq
+      curl -L -O https://aur.archlinux.org/cgit/aur.git/snapshot/snapd.tar.gz
+      tar xf snapd.tar.gz
+      pushd snapd
+      makepkg -si --noconfirm
+      popd
+      sudo systemctl enable --now snapd.seeded
+      sudo systemctl enable --now snapd
+      cd kubedee
+      sudo ln -s $PWD/kubedee /usr/local/bin/kubedee
+      sudo modprobe nf_conntrack
+      echo 65536 | sudo tee /sys/module/nf_conntrack/parameters/hashsize
+      sudo snap install lxd
+      sudo usermod -a -G lxd $(whoami)
+      curl -fsSL https://files.schu.io/pub/cfssl/cfssl-linux-amd64-1.3.2 -o /tmp/cfssl && sudo install -m 0755 /tmp/cfssl /usr/local/bin/
+      curl -fsSL https://files.schu.io/pub/cfssl/cfssljson-linux-amd64-1.3.2 -o /tmp/cfssljson && sudo install -m 0755 /tmp/cfssljson /usr/local/bin/
+      curl -fsSL https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl -o /tmp/kubectl && sudo install -m 0755 /tmp/kubectl /usr/local/bin/
+  - setup: |
+      export PATH=/var/lib/snapd/snap/bin:$PATH
+      lxd init --auto --storage-backend btrfs
+  - test: |
+      export PATH=/var/lib/snapd/snap/bin:$PATH
+      cd kubedee
+      ./scripts/smoke-test
