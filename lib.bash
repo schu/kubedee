@@ -1086,15 +1086,14 @@ kubedee::configure_rbac() {
   local -r container_name="kubedee-${cluster_name}-controller"
   kubedee::apiserver_wait_running "${cluster_name}"
   kubedee::log_info "Configuring RBAC for kube-apiserver -> kubelet requests"
-  cat <<EOF | lxc exec "${container_name}" bash
-set -euo pipefail
 
 # During apiserver initialization, resources are not available
 # immediately. Wait for 'clusterroles' to avoid the following:
 # error: unable to recognize "STDIN": no matches for kind "ClusterRole" in version "rbac.authorization.k8s.io/v1beta1"
-until kubectl get clusterroles &>/dev/null; do sleep 1; done
-
-cat <<APISERVER_RBAC | kubectl apply -f -
+  until kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    get clusterroles &>/dev/null; do sleep 1; done
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    apply -f- <<EOF
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
@@ -1114,9 +1113,10 @@ rules:
       - nodes/metrics
     verbs:
       - "*"
-APISERVER_RBAC
+EOF
 
-cat <<APISERVER_BINDING | kubectl apply -f -
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+    apply -f- <<EOF
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -1130,8 +1130,6 @@ subjects:
   - apiGroup: rbac.authorization.k8s.io
     kind: User
     name: kubernetes
-APISERVER_BINDING
-
 EOF
 }
 
