@@ -10,9 +10,7 @@ export KUBECONFIG=.../contrib/terraform/hetzner-cloud/admin.kubeconfig
 
 Get the latest version of sonobuoy:
 
-```
-go get -u -v github.com/heptio/sonobuoy
-```
+https://github.com/vmware-tanzu/sonobuoy/releases
 
 Run sonobuoy:
 
