@@ -17,6 +17,8 @@ apt-get install -y \
 
 lxd init --auto --storage-backend btrfs
 
+usermod -a -G lxd,sudo ubuntu
+
 curl -fsSL https://files.schu.io/pub/cfssl/cfssl-linux-amd64-1.3.2 -o /tmp/cfssl &&
   install -m 0755 /tmp/cfssl /usr/local/bin/
 curl -fsSL https://files.schu.io/pub/cfssl/cfssljson-linux-amd64-1.3.2 -o /tmp/cfssljson &&
