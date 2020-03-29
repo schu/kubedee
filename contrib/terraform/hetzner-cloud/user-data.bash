@@ -5,8 +5,7 @@ set -euo pipefail
 # Find debug output in /var/log/cloud-init-output.log
 set -x
 
-id -u ubuntu &>/dev/null || adduser --disabled-password ubuntu
-usermod -a -G lxd,sudo ubuntu
+id -u ubuntu &>/dev/null || adduser --disabled-password --gecos '' ubuntu
 echo "%sudo ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers.d/10-sudo-group-nopasswd
 
 apt-get update
