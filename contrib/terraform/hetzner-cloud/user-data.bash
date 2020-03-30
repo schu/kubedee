@@ -5,8 +5,7 @@ set -euo pipefail
 # Find debug output in /var/log/cloud-init-output.log
 set -x
 
-id -u ubuntu &>/dev/null || adduser --disabled-password ubuntu
-usermod -a -G lxd,sudo ubuntu
+id -u ubuntu &>/dev/null || adduser --disabled-password --gecos '' ubuntu
 echo "%sudo ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers.d/10-sudo-group-nopasswd
 
 apt-get update
@@ -17,6 +16,8 @@ apt-get install -y \
   lxd-client
 
 lxd init --auto --storage-backend btrfs
+
+usermod -a -G lxd,sudo ubuntu
 
 curl -fsSL https://files.schu.io/pub/cfssl/cfssl-linux-amd64-1.3.2 -o /tmp/cfssl &&
   install -m 0755 /tmp/cfssl /usr/local/bin/
