@@ -59,7 +59,7 @@ readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._
 readonly kubedee_etcd_version="v3.4.7"
 readonly kubedee_runc_version="v1.0.0-rc10"
 readonly kubedee_cni_plugins_version="v0.8.5"
-readonly kubedee_crio_version="v1.16.1"
+readonly kubedee_crio_version="v1.17.3"
 
 readonly lxd_status_code_running=103
 
@@ -212,7 +212,7 @@ kubedee::fetch_crio() {
     kubedee::log_info "Fetching crio ${kubedee_crio_version} ..."
     curl -fsSL -o - "https://files.schu.io/pub/cri-o/crio-amd64-${kubedee_crio_version}.tar.gz" |
       tar -xzf -
-    kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pause crio.conf crictl.yaml crio-umount.conf policy.json
+    kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pinns crio.conf crictl.yaml crio-umount.conf policy.json
   )
   rm -rf "${tmp_dir}"
 }
@@ -268,10 +268,7 @@ kubedee::copy_crio_files() {
   local -r cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
   local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
-  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{crio,conmon}
-  target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/libexec/crio"
-  mkdir -p "${target_dir}"
-  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/pause"
+  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{crio,conmon,pinns}
   target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio"
   mkdir -p "${target_dir}/"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{crio.conf,crictl.yaml,crio-umount.conf,policy.json}
@@ -1179,8 +1176,8 @@ kubedee::configure_worker() {
 
   lxc config device add "${container_name}" binary-crio disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/crio" path="/usr/local/bin/crio"
   lxc config device add "${container_name}" binary-conmon disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/conmon" path="/usr/local/bin/conmon"
+  lxc config device add "${container_name}" binary-pinns disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/pinns" path="/usr/local/bin/pinns"
   lxc config device add "${container_name}" crio-config disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio/" path="/etc/crio/"
-  lxc config device add "${container_name}" crio-libexec disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/libexec/crio/" path="/usr/local/libexec/crio/"
 
   lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/certificates/"{"${container_name}.pem","${container_name}-key.pem",ca.pem} "${container_name}/etc/kubernetes/"
   lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/"{"${container_name}-kubelet.kubeconfig",kube-proxy.kubeconfig} "${container_name}/etc/kubernetes/"
@@ -1207,6 +1204,8 @@ kubedee::configure_worker() {
 set -euo pipefail
 
 mkdir -p /etc/containers
+mkdir -p /usr/share/containers/oci/hooks.d
+
 ln -s /etc/crio/policy.json /etc/containers/policy.json
 
 mkdir -p /etc/cni/net.d
