@@ -21,7 +21,11 @@ readonly gid="$(id -g)"
 lxc config set build-crio raw.idmap "both ${uid} ${gid}"
 lxc restart -f build-crio
 
-lxc config device add build-crio crio-source disk "source=${PWD}" "path=/go/src/github.com/cri-o/cri-o"
+readonly crio_source="${GOPATH}/src/github.com/cri-o/cri-o"
+readonly conmon_source="${GOPATH}/src/github.com/containers/conmon"
+
+lxc config device add build-crio crio-source disk "source=${crio_source}" "path=/go/src/github.com/cri-o/cri-o"
+lxc config device add build-crio conmon-source disk "source=${conmon_source}" "path=/go/src/github.com/containers/conmon"
 lxc config device add build-crio crio-build disk "source=${out_dir}" "path=/crio-build"
 
 cat <<EOF | lxc exec build-crio bash
@@ -42,7 +46,7 @@ apt-get install -y --no-install-recommends \
   pkg-config \
   tar
 
-curl -Lo /tmp/go.tgz 'https://dl.google.com/go/go1.14.1.linux-amd64.tar.gz'
+curl -Lo /tmp/go.tgz 'https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz'
 tar -C /usr/local -xzf /tmp/go.tgz
 export PATH="\$PATH:/usr/local/go/bin"
 
@@ -50,6 +54,7 @@ pushd /go/src/github.com/cri-o/cri-o
 
 export GOPATH=/go
 
+make clean
 make
 
 ./bin/crio --version
@@ -60,5 +65,16 @@ cp \
   crio.conf \
   crio-umount.conf \
   test/policy.json \
+  /crio-build
+
+pushd /go/src/github.com/containers/conmon
+
+make clean
+make
+
+./bin/conmon --version
+
+cp \
+  bin/conmon \
   /crio-build
 EOF
