@@ -38,6 +38,7 @@ kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
 kubernetes_version=""
 no_set_context="false"
 num_worker=2
+enable_insecure_registry="false"
 
 # shellcheck source=/dev/null
 source "${kubedee_source_dir}/lib.bash"
@@ -71,6 +72,7 @@ Options:
                                                         takes precedence over \`--bin-dir\`
   --no-set-context                                      prevent kubedee from adding a new kubeconfig context
   --num-worker <num>                                    number of worker nodes to start (default: 2)
+  --enable-insecure-registry                            launch insecure OCI image registry in cluster network
 USAGE
   exit 1
 }
@@ -94,6 +96,7 @@ cmd_create() {
   kubedee::copy_crio_files "${cluster_name}"
   kubedee::copy_runc_binaries "${cluster_name}"
   kubedee::copy_cni_plugins "${cluster_name}"
+  [[ "${enable_insecure_registry}" == "true" ]] && kubedee::copy_registry_files "${cluster_name}"
   kubedee::create_certificate_authority_etcd "${cluster_name}"
   kubedee::create_certificate_authority_k8s "${cluster_name}"
   kubedee::create_certificate_authority_aggregation "${cluster_name}"
@@ -126,11 +129,13 @@ cmd_start() {
   done
   kubedee::log_info "Starting cluster ${cluster_name} ..."
   kubedee::launch_etcd "${cluster_name}"
+  [[ "${enable_insecure_registry}" == "true" ]] && kubedee::launch_registry "${cluster_name}"
   kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-controller"
   for ((i = 0; i < num_worker; i++)); do
     kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
   done
   kubedee::configure_etcd "${cluster_name}"
+  [[ "${enable_insecure_registry}" == "true" ]] && kubedee::configure_registry "${cluster_name}"
   kubedee::create_certificate_kubernetes "${cluster_name}" "${apiserver_extra_hostnames}"
   kubedee::configure_controller "${cluster_name}" "kubedee-${cluster_name}-controller" "${admission_plugins}"
   for ((i = 0; i < num_worker; i++)); do
@@ -178,6 +183,13 @@ cmd_start() {
   kubedee::log_info "Current node status is (should be ready soon):"
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get nodes
   echo
+  local -r registry_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-registry")"
+  if [[ -n "${registry_ip}" ]]; then
+    kubedee::log_info "Cluster-local insecure OCI registry is running at:"
+    kubedee::log_info "- http://kubedee-${cluster_name}-registry:5000 (in-cluster)"
+    kubedee::log_info "- http://${registry_ip}:5000"
+    echo
+  fi
 }
 
 cmd_start-worker() {
@@ -311,6 +323,10 @@ main() {
       ;;
     --no-set-context)
       no_set_context="true"
+      shift
+      ;;
+    --enable-insecure-registry)
+      enable_insecure_registry="true"
       shift
       ;;
     help | -h | --help)

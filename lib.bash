@@ -60,6 +60,7 @@ readonly kubedee_etcd_version="v3.4.14"
 readonly kubedee_runc_version="v1.0.0-rc93"
 readonly kubedee_cni_plugins_version="v0.9.1"
 readonly kubedee_crio_version="v1.20.0"
+readonly kubedee_registry_version="v2.7.1"
 
 readonly lxd_status_code_running=103
 
@@ -249,6 +250,22 @@ kubedee::fetch_cni_plugins() {
   rm -rf "${tmp_dir}"
 }
 
+kubedee::fetch_registry() {
+  local -r cache_dir="${kubedee_cache_dir}/registry/${kubedee_registry_version}"
+  mkdir -p "${cache_dir}"
+  [[ -e "${cache_dir}/registry" ]] && return
+  local tmp_dir
+  tmp_dir="$(mktemp -d /tmp/kubedee-XXXXXX)"
+  (
+    kubedee::cd_or_exit_error "${tmp_dir}"
+    kubedee::log_info "Fetching registry ${kubedee_registry_version} ..."
+    curl -fsSL -o registry "https://${REGISTRY_SOURCE_DOMAIN}/pub/registry/${kubedee_registry_version}"
+    chmod +x registry
+    kubedee::copyl_or_exit_error "${cache_dir}/" registry
+  )
+  rm -rf "${tmp_dir}"
+}
+
 # Args:
 #   $1 The validated cluster name
 kubedee::copy_etcd_binaries() {
@@ -301,6 +318,20 @@ kubedee::copy_cni_plugins() {
   local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/opt/cni/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"*
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::copy_registry_files() {
+  local -r cluster_name="${1}"
+  kubedee::fetch_registry
+  local -r cache_dir="${kubedee_cache_dir}/registry/${kubedee_registry_version}"
+  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
+  mkdir -p "${target_dir}"
+  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/registry"
+  target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/docker/registry"
+  mkdir -p "${target_dir}"
+  kubedee::copyl_or_exit_error "${target_dir}/" "${kubedee_source_dir}/configs/registry/config.yml"
 }
 
 # Args:
@@ -878,6 +909,54 @@ kubedee::launch_etcd() {
 
 # Args:
 #   $1 The validated cluster name
+kubedee::launch_registry() {
+  local -r cluster_name="${1}"
+  local -r container_name="kubedee-${cluster_name}-registry"
+  local -r network_id_file="${kubedee_dir}/clusters/${cluster_name}/network_id"
+  local network_id
+  network_id="$(cat "${network_id_file}")"
+  lxc info "${container_name}" &>/dev/null && return
+  lxc launch \
+    --storage kubedee \
+    --network "${network_id}" \
+    --config raw.lxc="${raw_lxc_apparmor_allow_incomplete}" \
+    "${kubedee_container_image}" "${container_name}"
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::configure_registry() {
+  local -r cluster_name="${1}"
+  local -r container_name="kubedee-${cluster_name}-registry"
+  kubedee::container_wait_running "${container_name}"
+  local ip
+  ip="$(kubedee::container_ipv4_address "${container_name}")"
+  kubedee::log_info "Providing files to ${container_name} ..."
+
+  lxc config device add "${container_name}" binary-registry disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/registry" path="/usr/local/bin/registry"
+  lxc config device add "${container_name}" registry-config disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/docker/registry/" path="/etc/docker/registry/"
+
+  kubedee::log_info "Configuring ${container_name} ..."
+  cat <<EOF | lxc exec "${container_name}" bash
+set -euo pipefail
+cat >/etc/systemd/system/oci-registry.service <<'OCI_REGISTRY'
+[Unit]
+Description=oci-registry
+
+[Service]
+ExecStart=/usr/local/bin/registry serve /etc/docker/registry/config.yml
+Restart=on-failure
+RestartSec=5
+OCI_REGISTRY
+
+systemctl daemon-reload
+systemctl -q enable oci-registry
+systemctl start oci-registry
+EOF
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::configure_etcd() {
   local -r cluster_name="${1}"
   local -r container_name="kubedee-${cluster_name}-etcd"
@@ -1188,6 +1267,8 @@ RAW_LXC
 kubedee::configure_worker() {
   local -r cluster_name="${1}"
   local -r container_name="${2}"
+  local -r registry_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-registry")"
+
   kubedee::container_wait_running "${container_name}"
   kubedee::create_certificate_worker "${cluster_name}" "${container_name}"
   kubedee::create_kubeconfig_worker "${cluster_name}" "${container_name}"
@@ -1232,6 +1313,21 @@ mkdir -p /etc/containers
 mkdir -p /usr/share/containers/oci/hooks.d
 
 ln -s /etc/crio/policy.json /etc/containers/policy.json
+cat <<'REGISTRIES_CONF' >/etc/containers/registries.conf
+unqualified-search-registries = ['docker.io']
+[[registry]]
+prefix = "registry.local:5000"
+insecure = true
+location = "kubedee-${cluster_name}-registry:5000"
+[[registry]]
+prefix = "kubedee-${cluster_name}-registry:5000"
+insecure = true
+location = "kubedee-${cluster_name}-registry:5000"
+[[registry]]
+prefix = "${registry_ip:-127.0.0.1}:5000"
+insecure = true
+location = "${registry_ip:-127.0.0.1}:5000"
+REGISTRIES_CONF
 
 mkdir -p /etc/cni/net.d
 
@@ -1240,7 +1336,7 @@ cat >/etc/systemd/system/crio.service <<'CRIO_UNIT'
 Description=CRI-O daemon
 
 [Service]
-ExecStart=/usr/local/bin/crio --registry docker.io
+ExecStart=/usr/local/bin/crio
 Restart=always
 RestartSec=10s
 
