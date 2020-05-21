@@ -262,6 +262,13 @@ kubedee::copy_etcd_binaries() {
 
 # Args:
 #   $1 The validated cluster name
+kubedee::k8s_minor_version() {
+  local -r cluster_name="${1}"
+  "${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kubectl" version --client -o json | jq -r .clientVersion.minor
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::copy_crio_files() {
   local -r cluster_name="${1}"
   kubedee::fetch_crio
@@ -946,7 +953,13 @@ kubedee::configure_controller() {
 
   lxc file push -p "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/"{kube-controller-manager.kubeconfig,kube-scheduler.kubeconfig} "${container_name}/etc/kubernetes/"
 
-  local kubescheduler_config_api_version="kubescheduler.config.k8s.io/v1alpha1"
+  local kubescheduler_config_api_version="kubescheduler.config.k8s.io/v1alpha2"
+  local k8s_minor_version
+  k8s_minor_version="$(kubedee::k8s_minor_version "${cluster_name}")"
+  if [[ "${k8s_minor_version}" == 16* ]] ||
+    [[ "${k8s_minor_version}" == 17* ]]; then
+    kubescheduler_config_api_version="kubescheduler.config.k8s.io/v1alpha1"
+  fi
 
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
