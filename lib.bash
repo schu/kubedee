@@ -262,6 +262,13 @@ kubedee::copy_etcd_binaries() {
 
 # Args:
 #   $1 The validated cluster name
+kubedee::k8s_minor_version() {
+  local -r cluster_name="${1}"
+  "${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin/kubectl" version --client -o json | jq -r .clientVersion.minor
+}
+
+# Args:
+#   $1 The validated cluster name
 kubedee::copy_crio_files() {
   local -r cluster_name="${1}"
   kubedee::fetch_crio
