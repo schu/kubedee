@@ -5,6 +5,7 @@
 #   $kubedee_dir The directory to store kubedee's internal data
 #   $kubedee_cache_dir The directory to store tools required by kubedee
 #   $kubedee_version The kubedee version, used for the cache
+#   $_kubectl Path to kubectl binary
 
 kubedee::log_info() {
   local -r message="${1:-""}"
@@ -54,7 +55,30 @@ kubedee::exit_error() {
   return 1
 }
 
-readonly kubedee_base_image="ubuntu:20.04"
+# Args:
+#   $1 Executed kubedee command
+kubedee::find_kubectl() {
+  _kubectl="$(readlink -f "$(type -p kubectl)" 2>/dev/null ||:)"
+  if [[ -f "${kubedee_cache_dir}/kubernetes/${kubernetes_version}/kubectl" ]] \
+    || [[ "${1}" == "create" ]] || [[ "${1}" == "up" ]]; then
+    _kubectl="${kubedee_cache_dir}/kubernetes/${kubernetes_version}/kubectl"
+  fi
+  if [[ -f "${bin_dir}/kubectl" ]]; then
+    _kubectl="${bin_dir}/kubectl"
+  fi
+  if [[ -z "${_kubectl}" ]]; then
+    kubedee::exit_error 'No `kubectl` binary found.'
+  fi
+}
+
+supported_arches=(amd64 arm64)
+case "$(uname -m)" in
+  x86_64)  sys_arch=amd64;;
+  aarch64) sys_arch=arm64;;
+  *) kubedee::exit_error "Unsupported architecture.";;
+esac
+
+readonly kubedee_base_image="images:ubuntu/focal/${sys_arch}"
 readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._]/-}"
 readonly kubedee_etcd_version="v3.4.7"
 readonly kubedee_runc_version="v1.0.0-rc10"
@@ -176,10 +200,10 @@ kubedee::fetch_k8s() {
   (
     kubedee::cd_or_exit_error "${target_dir}"
     kubedee::log_info "Fetching Kubernetes ${k8s_version} ..."
-    if ! curl -fsSLI "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-amd64.tar.gz" >/dev/null; then
+    if ! curl -fsSLI "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-${sys_arch}.tar.gz" >/dev/null; then
       kubedee::exit_error "Kubernetes version '${k8s_version}' not found on dl.k8s.io"
     fi
-    curl -fsSL -o - "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-amd64.tar.gz" |
+    curl -fsSL -o - "https://dl.k8s.io/${k8s_version}/kubernetes-server-linux-${sys_arch}.tar.gz" |
       tar -xzf - --strip-components 3 \
         "kubernetes/server/bin/"{kube-apiserver,kube-controller-manager,kubectl,kubelet,kube-proxy,kube-scheduler}
   )
@@ -194,7 +218,7 @@ kubedee::fetch_etcd() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching etcd ${kubedee_etcd_version} ..."
-    curl -fsSL -o - "https://github.com/coreos/etcd/releases/download/${kubedee_etcd_version}/etcd-${kubedee_etcd_version}-linux-amd64.tar.gz" |
+    curl -fsSL -o - "https://github.com/coreos/etcd/releases/download/${kubedee_etcd_version}/etcd-${kubedee_etcd_version}-linux-${sys_arch}.tar.gz" |
       tar -xzf - --strip-components 1
     kubedee::copyl_or_exit_error "${cache_dir}/" etcd etcdctl
   )
@@ -210,9 +234,9 @@ kubedee::fetch_crio() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching crio ${kubedee_crio_version} ..."
-    curl -fsSL -o - "https://files.schu.io/pub/cri-o/crio-amd64-${kubedee_crio_version}.tar.gz" |
+    curl -fsSL -o - "https://files.schu.io/pub/cri-o/crio-${sys_arch}-${kubedee_crio_version}.tar.gz" |
       tar -xzf -
-    kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pinns crio.conf crictl.yaml crio-umount.conf policy.json
+    kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pinns
   )
   rm -rf "${tmp_dir}"
 }
@@ -226,9 +250,9 @@ kubedee::fetch_runc() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching runc ${kubedee_runc_version} ..."
-    curl -fsSL -O "https://github.com/opencontainers/runc/releases/download/${kubedee_runc_version}/runc.amd64"
-    chmod +x runc.amd64
-    kubedee::copyl_or_exit_error "${cache_dir}/runc" runc.amd64
+    curl -fsSL -O "https://github.com/opencontainers/runc/releases/download/${kubedee_runc_version}/runc.${sys_arch}"
+    chmod +x runc.${sys_arch}
+    kubedee::copyl_or_exit_error "${cache_dir}/runc" runc.${sys_arch}
   )
   rm -rf "${tmp_dir}"
 }
@@ -242,7 +266,7 @@ kubedee::fetch_cni_plugins() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching cni plugins ${kubedee_cni_plugins_version} ..."
-    curl -fsSL -o - "https://github.com/containernetworking/plugins/releases/download/${kubedee_cni_plugins_version}/cni-plugins-linux-amd64-${kubedee_cni_plugins_version}.tgz" |
+    curl -fsSL -o - "https://github.com/containernetworking/plugins/releases/download/${kubedee_cni_plugins_version}/cni-plugins-linux-${sys_arch}-${kubedee_cni_plugins_version}.tgz" |
       tar -xzf -
     kubedee::copyl_or_exit_error "${cache_dir}/" ./*
   )
@@ -253,10 +277,24 @@ kubedee::fetch_cni_plugins() {
 #   $1 The validated cluster name
 kubedee::copy_etcd_binaries() {
   local -r cluster_name="${1}"
-  kubedee::fetch_etcd
-  local -r cache_dir="${kubedee_cache_dir}/etcd/${kubedee_etcd_version}"
   local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
   mkdir -p "${target_dir}"
+
+  if [[ "${use_host_binaries}" == "true" ]]; then
+    kubedee::log_info "Trying to copy host etcd ..."
+    if ! cp \
+      "$(readlink -f "$(type -p etcd)" 2>/dev/null)" \
+      "$(readlink -f "$(type -p etcdctl)" 2>/dev/null)" \
+      "${target_dir}/" &>/dev/null; then
+        kubedee::log_warn "Failed to copy host etcd. Falling back to cache ..."
+    else
+      kubedee::log_info "Using host etcd."
+      return
+    fi
+  fi
+
+  kubedee::fetch_etcd
+  local -r cache_dir="${kubedee_cache_dir}/etcd/${kubedee_etcd_version}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{etcd,etcdctl}
 }
 
@@ -271,24 +309,57 @@ kubedee::k8s_minor_version() {
 #   $1 The validated cluster name
 kubedee::copy_crio_files() {
   local -r cluster_name="${1}"
+
+  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio"
+  mkdir -p "${target_dir}"
+  tmp_dir="$(mktemp -d /tmp/kubedee-XXXXXX)"
+  SYS_ARCH=${sys_arch} envsubst <"${kubedee_source_dir}/configs/crio/crio.conf.tpl" >"${tmp_dir}/crio.conf"
+  kubedee::copyl_or_exit_error "${target_dir}/" "${kubedee_source_dir}/configs/crio/"{crictl.yaml,crio-umount.conf,policy.json} "${tmp_dir}/crio.conf"
+  rm -rf "${tmp_dir}"
+
+  target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
+  mkdir -p "${target_dir}"
+
+  if [[ "${use_host_binaries}" == "true" ]]; then
+    kubedee::log_info "Trying to copy host crio ..."
+    if ! cp \
+      "$(readlink -f "$(type -p crio)" 2>/dev/null)" \
+      "$(readlink -f "$(type -p conmon)" 2>/dev/null)" \
+      "$(readlink -f "$(type -p pinns)" 2>/dev/null)" \
+      "${target_dir}/" &>/dev/null; then
+        kubedee::log_warn "Failed to copy host crio. Falling back to cache ..."
+    else
+      kubedee::log_info "Using host crio."
+      return
+    fi
+  fi
+
   kubedee::fetch_crio
   local -r cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
-  local target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/local/bin"
-  mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{crio,conmon,pinns}
-  target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/etc/crio"
-  mkdir -p "${target_dir}/"
-  kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"{crio.conf,crictl.yaml,crio-umount.conf,policy.json}
 }
 
 # Args:
 #   $1 The validated cluster name
 kubedee::copy_runc_binaries() {
   local -r cluster_name="${1}"
-  kubedee::fetch_runc
-  local -r cache_dir="${kubedee_cache_dir}/runc/${kubedee_runc_version}"
   local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/usr/bin"
   mkdir -p "${target_dir}"
+
+  if [[ "${use_host_binaries}" == "true" ]]; then
+    kubedee::log_info "Trying to copy host runc ..."
+    if ! cp \
+      "$(readlink -f "$(type -p runc)" 2>/dev/null)" \
+      "${target_dir}/" &>/dev/null; then
+        kubedee::log_warn "Failed to copy host runc. Falling back to cache ..."
+    else
+      kubedee::log_info "Using host runc."
+      return
+    fi
+  fi
+
+  kubedee::fetch_runc
+  local -r cache_dir="${kubedee_cache_dir}/runc/${kubedee_runc_version}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/runc"
 }
 
@@ -738,24 +809,24 @@ kubedee::create_kubeconfig_admin() {
   controller_ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   mkdir -p "${cluster_dir}/kubeconfig"
 
-  kubectl config set-cluster kubedee \
+  "${_kubectl}" config set-cluster kubedee \
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
     --embed-certs=true \
     --server="https://${controller_ip}:6443" \
     --kubeconfig="${cluster_dir}/kubeconfig/admin.kubeconfig"
 
-  kubectl config set-credentials admin \
+  "${_kubectl}" config set-credentials admin \
     --client-certificate="${cluster_dir}/certificates/admin.pem" \
     --client-key="${cluster_dir}/certificates/admin-key.pem" \
     --embed-certs=true \
     --kubeconfig="${cluster_dir}/kubeconfig/admin.kubeconfig"
 
-  kubectl config set-context default \
+  "${_kubectl}" config set-context default \
     --cluster=kubedee \
     --user=admin \
     --kubeconfig="${cluster_dir}/kubeconfig/admin.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/admin.kubeconfig"
+  "${_kubectl}" config use-context default --kubeconfig="${cluster_dir}/kubeconfig/admin.kubeconfig"
 }
 
 # Args:
@@ -769,43 +840,43 @@ kubedee::create_kubeconfig_controller() {
 
   kubedee::log_info "Generating ${container_name} kubeconfig ..."
 
-  kubectl config set-cluster kubedee \
+  "${_kubectl}" config set-cluster kubedee \
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
     --embed-certs=true \
     --server="https://${controller_ip}:6443" \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
 
-  kubectl config set-credentials kube-controller-manager \
+  "${_kubectl}" config set-credentials kube-controller-manager \
     --client-certificate="${cluster_dir}/certificates/kube-controller-manager.pem" \
     --client-key="${cluster_dir}/certificates/kube-controller-manager-key.pem" \
     --embed-certs=true \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
 
-  kubectl config set-context default \
+  "${_kubectl}" config set-context default \
     --cluster=kubedee \
     --user=kube-controller-manager \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
+  "${_kubectl}" config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-controller-manager.kubeconfig"
 
-  kubectl config set-cluster kubedee \
+  "${_kubectl}" config set-cluster kubedee \
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
     --embed-certs=true \
     --server="https://${controller_ip}:6443" \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
 
-  kubectl config set-credentials kube-scheduler \
+  "${_kubectl}" config set-credentials kube-scheduler \
     --client-certificate="${cluster_dir}/certificates/kube-scheduler.pem" \
     --client-key="${cluster_dir}/certificates/kube-scheduler-key.pem" \
     --embed-certs=true \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
 
-  kubectl config set-context default \
+  "${_kubectl}" config set-context default \
     --cluster=kubedee \
     --user=kube-scheduler \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
+  "${_kubectl}" config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-scheduler.kubeconfig"
 }
 
 # Args:
@@ -821,43 +892,43 @@ kubedee::create_kubeconfig_worker() {
 
   kubedee::log_info "Generating ${container_name} kubeconfig ..."
 
-  kubectl config set-cluster kubedee \
+  "${_kubectl}" config set-cluster kubedee \
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
     --embed-certs=true \
     --server="https://${controller_ip}:6443" \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
 
-  kubectl config set-credentials kube-proxy \
+  "${_kubectl}" config set-credentials kube-proxy \
     --client-certificate="${cluster_dir}/certificates/kube-proxy.pem" \
     --client-key="${cluster_dir}/certificates/kube-proxy-key.pem" \
     --embed-certs=true \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
 
-  kubectl config set-context default \
+  "${_kubectl}" config set-context default \
     --cluster=kubedee \
     --user=kube-proxy \
     --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
+  "${_kubectl}" config use-context default --kubeconfig="${cluster_dir}/kubeconfig/kube-proxy.kubeconfig"
 
-  kubectl config set-cluster kubedee \
+  "${_kubectl}" config set-cluster kubedee \
     --certificate-authority="${cluster_dir}/certificates/ca.pem" \
     --embed-certs=true \
     --server="https://${controller_ip}:6443" \
     --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 
-  kubectl config set-credentials "system:node:${container_name}" \
+  "${_kubectl}" config set-credentials "system:node:${container_name}" \
     --client-certificate="${cluster_dir}/certificates/${container_name}.pem" \
     --client-key="${cluster_dir}/certificates/${container_name}-key.pem" \
     --embed-certs=true \
     --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 
-  kubectl config set-context default \
+  "${_kubectl}" config set-context default \
     --cluster=kubedee \
     --user="system:node:${container_name}" \
     --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 
-  kubectl config use-context default --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
+  "${_kubectl}" config use-context default --kubeconfig="${cluster_dir}/kubeconfig/${container_name}-kubelet.kubeconfig"
 }
 
 # Args:
@@ -900,6 +971,7 @@ cat >/etc/systemd/system/etcd.service <<'ETCD_UNIT'
 Description=etcd
 
 [Service]
+Environment=ETCD_UNSUPPORTED_ARCH=${sys_arch}
 ExecStart=/usr/local/bin/etcd \\
   --name ${container_name} \\
   --cert-file=/etc/etcd/etcd.pem \\
@@ -1101,9 +1173,9 @@ kubedee::configure_rbac() {
   # During apiserver initialization, resources are not available
   # immediately. Wait for 'clusterroles' to avoid the following:
   # error: unable to recognize "STDIN": no matches for kind "ClusterRole" in version "rbac.authorization.k8s.io/v1beta1"
-  until kubectl --kubeconfig "${kubeconfig}" get clusterroles &>/dev/null; do sleep 1; done
+  until "${_kubectl}" --kubeconfig "${kubeconfig}" get clusterroles &>/dev/null; do sleep 1; done
 
-  cat <<APISERVER_RBAC | kubectl --kubeconfig "${kubeconfig}" apply -f -
+  cat <<APISERVER_RBAC | "${_kubectl}" --kubeconfig "${kubeconfig}" apply -f -
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
@@ -1125,7 +1197,7 @@ rules:
       - "*"
 APISERVER_RBAC
 
-  cat <<APISERVER_BINDING | kubectl --kubeconfig "${kubeconfig}" apply -f -
+  cat <<APISERVER_BINDING | "${_kubectl}" --kubeconfig "${kubeconfig}" apply -f -
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
@@ -1168,6 +1240,7 @@ RAW_LXC
     --config linux.kernel_modules=ip_tables,ip6_tables,netlink_diag,nf_nat,overlay \
     --config raw.lxc="${raw_lxc}" \
     "${kubedee_container_image}" "${container_name}"
+  lxc exec "${container_name}" -- ln -sf "/usr/lib/$(uname -m)-linux-gnu/libdevmapper.so.1.02.1" "/usr/lib/$(uname -m)-linux-gnu/libdevmapper.so.1.02"
 }
 
 # Args:
@@ -1330,7 +1403,7 @@ kubedee::deploy_pod_security_policies() {
   local -r cluster_name="${1}"
   kubedee::log_info "Deploying default pod security policies ..."
   local -r psp_manifest="${kubedee_source_dir}/manifests/pod-security-policies.yml"
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     apply -f "${psp_manifest}"
 }
 
@@ -1340,8 +1413,12 @@ kubedee::deploy_flannel() {
   local -r cluster_name="${1}"
   kubedee::log_info "Deploying flannel ..."
   local -r flannel_manifest="${kubedee_source_dir}/manifests/kube-flannel.yml"
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+  local -r flannel_ds_template="${kubedee_source_dir}/manifests/kube-flannel-ds.yml.tpl"
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     apply -f "${flannel_manifest}"
+  for i in "${supported_arches[@]}"; do
+    SYS_ARCH=${i} envsubst <"${flannel_ds_template}" | "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" apply -f -
+  done
 }
 
 # Args:
@@ -1349,9 +1426,7 @@ kubedee::deploy_flannel() {
 kubedee::deploy_core_dns() {
   local -r cluster_name="${1}"
   kubedee::log_info "Deploying core-dns ..."
-  local -r dns_manifest="${kubedee_source_dir}/manifests/core-dns.yml"
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
-    apply -f "${dns_manifest}"
+  SYS_ARCH=${sys_arch} envsubst <"${kubedee_source_dir}/manifests/core-dns.yml.tpl" | "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" apply -f -
 }
 
 # Args:
@@ -1361,11 +1436,11 @@ kubedee::label_and_taint_controller() {
   local -r cluster_name="${1}"
   local -r controller_node_name="${2}"
   kubedee::log_info "Applying labels and taints to ${controller_node_name} ..."
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     label node "${controller_node_name}" node-role.kubernetes.io/master=""
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     label node "${controller_node_name}" ingress-nginx=""
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     taint node "${controller_node_name}" node-role.kubernetes.io/master=:NoSchedule
 }
 
@@ -1376,7 +1451,7 @@ kubedee::label_worker() {
   local -r cluster_name="${1}"
   local -r node_name="${2}"
   kubedee::log_info "Applying labels to ${node_name} ..."
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     label node "${node_name}" node-role.kubernetes.io/node=""
 }
 
@@ -1386,7 +1461,7 @@ kubedee::label_worker() {
 kubedee::wait_for_node() {
   local -r cluster_name="${1}"
   local -r node_name="${2}"
-  until kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get node "${node_name}" &>/dev/null; do
+  until "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get node "${node_name}" &>/dev/null; do
     kubedee::log_info "Waiting for node ${node_name} to be registered ..."
     sleep 3
   done
@@ -1422,7 +1497,7 @@ apt-get update
 
 # crio requires libgpgme11
 # helm requires socat
-apt-get install -y libgpgme11 socat
+apt-get install -y curl iptables libgpgme11 socat
 
 rm -rf /var/cache/apt
 EOF
@@ -1440,9 +1515,9 @@ kubedee::smoke_test() {
   deployment_suffix="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6 || true)"
   local -r deployment_name="kubedee-smoke-test-${cluster_name}-${deployment_suffix}"
   kubedee::log_info "Running smoke test for cluster ${cluster_name} ..."
-  kubectl --kubeconfig "${kubeconfig}" create deploy "${deployment_name}" --image=nginx
-  kubectl --kubeconfig "${kubeconfig}" scale deploy "${deployment_name}" --replicas=3
-  kubectl --kubeconfig "${kubeconfig}" expose deployment "${deployment_name}" --target-port=80 --port=8080 --type=NodePort
+  "${_kubectl}" --kubeconfig "${kubeconfig}" create deploy "${deployment_name}" --image=nginx
+  "${_kubectl}" --kubeconfig "${kubeconfig}" scale deploy "${deployment_name}" --replicas=3
+  "${_kubectl}" --kubeconfig "${kubeconfig}" expose deployment "${deployment_name}" --target-port=80 --port=8080 --type=NodePort
   # Pick one of the worker nodes with kube-proxy
   # running and test if the service is reachable
   local worker
@@ -1453,8 +1528,8 @@ kubedee::smoke_test() {
     fi
   done
   delete_smoke_test() {
-    kubectl --kubeconfig "${kubeconfig}" delete service "${deployment_name}"
-    kubectl --kubeconfig "${kubeconfig}" delete deployment "${deployment_name}"
+    "${_kubectl}" --kubeconfig "${kubeconfig}" delete service "${deployment_name}"
+    "${_kubectl}" --kubeconfig "${kubeconfig}" delete deployment "${deployment_name}"
   }
   if [[ -z "${worker}" ]]; then
     delete_smoke_test
@@ -1463,7 +1538,7 @@ kubedee::smoke_test() {
   local worker_ip
   worker_ip="$(kubedee::container_ipv4_address "${worker}")"
   local service_port
-  service_port="$(kubectl --kubeconfig "${kubeconfig}" get services "${deployment_name}" -o jsonpath='{.spec.ports[0].nodePort}')"
+  service_port="$("${_kubectl}" --kubeconfig "${kubeconfig}" get services "${deployment_name}" -o jsonpath='{.spec.ports[0].nodePort}')"
   local now
   now="$(date +%s)"
   local timeout
@@ -1493,16 +1568,16 @@ kubedee::configure_kubeconfig() {
   local ip
   ip="$(kubedee::container_ipv4_address "kubedee-${cluster_name}-controller")"
   [[ -z "${ip}" ]] && kubedee::exit_error "Failed to get IPv4 for kubedee-${cluster_name}-controller"
-  kubectl config set-cluster "${cluster_context_name}" \
+  "${_kubectl}" config set-cluster "${cluster_context_name}" \
     --certificate-authority="${kubedee_dir}/clusters/${cluster_name}/certificates/ca.pem" \
     --server="https://${ip}:6443"
-  kubectl config set-credentials "${cluster_creds_name}" \
+  "${_kubectl}" config set-credentials "${cluster_creds_name}" \
     --client-certificate="${kubedee_dir}/clusters/${cluster_name}/certificates/admin.pem" \
     --client-key="${kubedee_dir}/clusters/${cluster_name}/certificates/admin-key.pem"
-  kubectl config set-context "${cluster_context_name}" \
+  "${_kubectl}" config set-context "${cluster_context_name}" \
     --cluster="${cluster_context_name}" \
     --user="${cluster_creds_name}"
-  kubectl config use-context "${cluster_context_name}"
+  "${_kubectl}" config use-context "${cluster_context_name}"
 }
 
 # Args:
@@ -1512,7 +1587,7 @@ kubedee::create_admin_service_account() {
   local -r kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
   local -r sa_manifest="${kubedee_source_dir}/manifests/service-account-admin.yml"
   kubedee::log_info "Adding 'kubedee-admin' service account ..."
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     apply -f "${sa_manifest}"
 }
 
@@ -1523,7 +1598,7 @@ kubedee::create_user_service_account() {
   local -r kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
   local -r sa_manifest="${kubedee_source_dir}/manifests/service-account-user.yml"
   kubedee::log_info "Adding 'kubedee-user' service account ..."
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     apply -f "${sa_manifest}"
 }
 
@@ -1534,12 +1609,12 @@ kubedee::get_service_account_token() {
   local -r name="${2}"
   local -r namespace="${3:-default}"
   local -r kubeconfig="${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig"
-  if ! kubectl --kubeconfig "${kubeconfig}" get serviceaccount -n "${namespace}" "${name}" &>/dev/null; then
+  if ! "${_kubectl}" --kubeconfig "${kubeconfig}" get serviceaccount -n "${namespace}" "${name}" &>/dev/null; then
     kubedee::exit_error "No service account with name '${name}' found in namespace '${namespace}'"
   fi
   local sa_secret
-  sa_secret="$(kubectl --kubeconfig "${kubeconfig}" get serviceaccount -n "${namespace}" "${name}" -o jsonpath='{.secrets[0].name}')"
+  sa_secret="$("${_kubectl}" --kubeconfig "${kubeconfig}" get serviceaccount -n "${namespace}" "${name}" -o jsonpath='{.secrets[0].name}')"
   local sa_token
-  sa_token="$(kubectl --kubeconfig "${kubeconfig}" get secret -n "${namespace}" "${sa_secret}" -o jsonpath='{.data.token}')"
+  sa_token="$("${_kubectl}" --kubeconfig "${kubeconfig}" get secret -n "${namespace}" "${sa_secret}" -o jsonpath='{.data.token}')"
   echo "${sa_token}" | base64 -d
 }

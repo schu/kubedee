@@ -57,7 +57,6 @@ data:
         health
         kubernetes cluster.local in-addr.arpa ip6.arpa {
           pods insecure
-          upstream
           fallthrough in-addr.arpa ip6.arpa
         }
         prometheus :9153
@@ -99,7 +98,7 @@ spec:
         beta.kubernetes.io/os: linux
       containers:
       - name: coredns
-        image: coredns/coredns:1.6.6
+        image: coredns/coredns:coredns-${SYS_ARCH}
         imagePullPolicy: IfNotPresent
         resources:
           limits:

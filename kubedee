@@ -38,6 +38,7 @@ kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
 kubernetes_version=""
 no_set_context="false"
 num_worker=2
+use_host_binaries="false"
 
 # shellcheck source=/dev/null
 source "${kubedee_source_dir}/lib.bash"
@@ -71,6 +72,7 @@ Options:
                                                         takes precedence over \`--bin-dir\`
   --no-set-context                                      prevent kubedee from adding a new kubeconfig context
   --num-worker <num>                                    number of worker nodes to start (default: 2)
+  --use-host-binaries                                   allow using binaries from the host within cluster containers
 USAGE
   exit 1
 }
@@ -110,8 +112,8 @@ cmd_delete() {
     [[ "${c}" == "kubedee-${cluster_name}-"* ]] && lxc delete -f "${c}"
   done
   kubedee::delete_network "${cluster_name}"
-  [[ "${no_set_context}" == "false" ]] && kubectl config unset current-context >/dev/null
-  kubectl config delete-context "kubedee-${cluster_name}" &>/dev/null || true
+  [[ "${no_set_context}" == "false" ]] && "${_kubectl}" config unset current-context >/dev/null
+  "${_kubectl}" config delete-context "kubedee-${cluster_name}" &>/dev/null || true
   rm -rf "${kubedee_dir}/clusters/${cluster_name}"
 }
 
@@ -132,6 +134,7 @@ cmd_start() {
   done
   kubedee::configure_etcd "${cluster_name}"
   kubedee::create_certificate_kubernetes "${cluster_name}" "${apiserver_extra_hostnames}"
+  kubedee::find_kubectl start
   kubedee::configure_controller "${cluster_name}" "kubedee-${cluster_name}-controller" "${admission_plugins}"
   for ((i = 0; i < num_worker; i++)); do
     kubedee::configure_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
@@ -173,10 +176,10 @@ cmd_start() {
   kubedee::log_info "Cluster nodes can be accessed with 'lxc exec <name> bash'"
   kubedee::log_info "Cluster files can be found in '${kubedee_dir}/clusters/${cluster_name}'\\n"
   kubedee::log_info "Current component status is (should be healthy):"
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get cs
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get cs
   echo
   kubedee::log_info "Current node status is (should be ready soon):"
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get nodes
+  "${_kubectl}" --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get nodes
   echo
 }
 
@@ -313,6 +316,10 @@ main() {
       no_set_context="true"
       shift
       ;;
+    --use-host-binaries)
+      use_host_binaries="true"
+      shift
+      ;;
     help | -h | --help)
       exit_usage
       ;;
@@ -332,6 +339,7 @@ main() {
   set -u
   local -r cmd="${1:-list}"
   shift || true
+  kubedee::find_kubectl "${cmd}"
   case "${cmd}" in
   admin-sa-token | controller-ip | create | create-admin-sa | create-user-sa | delete | etcd-env | kubectl-env | list | smoke-test | start | start-worker | user-sa-token | version)
     "cmd_${cmd}" "$@"
