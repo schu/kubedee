@@ -11,14 +11,14 @@ metadata:
 spec:
   privileged: false
   volumes:
-    - configMap
-    - secret
-    - emptyDir
-    - hostPath
+  - configMap
+  - secret
+  - emptyDir
+  - hostPath
   allowedHostPaths:
-    - pathPrefix: "/etc/cni/net.d"
-    - pathPrefix: "/etc/kube-flannel"
-    - pathPrefix: "/run/flannel"
+  - pathPrefix: "/etc/cni/net.d"
+  - pathPrefix: "/etc/kube-flannel"
+  - pathPrefix: "/run/flannel"
   readOnlyRootFilesystem: false
   # Users and groups
   runAsUser:
@@ -31,7 +31,7 @@ spec:
   allowPrivilegeEscalation: false
   defaultAllowPrivilegeEscalation: false
   # Capabilities
-  allowedCapabilities: ['NET_ADMIN']
+  allowedCapabilities: ['NET_ADMIN', 'NET_RAW']
   defaultAddCapabilities: []
   requiredDropCapabilities: []
   # Host namespaces
@@ -51,29 +51,29 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: flannel
 rules:
-  - apiGroups: ['extensions']
-    resources: ['podsecuritypolicies']
-    verbs: ['use']
-    resourceNames: ['psp.flannel.unprivileged']
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-    verbs:
-      - get
-  - apiGroups:
-      - ""
-    resources:
-      - nodes
-    verbs:
-      - list
-      - watch
-  - apiGroups:
-      - ""
-    resources:
-      - nodes/status
-    verbs:
-      - patch
+- apiGroups: ['extensions']
+  resources: ['podsecuritypolicies']
+  verbs: ['use']
+  resourceNames: ['psp.flannel.unprivileged']
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes/status
+  verbs:
+  - patch
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -127,7 +127,8 @@ data:
     {
       "Network": "10.244.0.0/16",
       "Backend": {
-        "Type": "vxlan"
+        "Type": "vxlan",
+        "DirectRouting": true
       }
     }
 ---

@@ -34,10 +34,16 @@ create_admin_sa="false"
 create_user_sa="false"
 install_psps=""
 kubedee_dir="${kubedee_dir:-${HOME}/.local/share/kubedee}"
-kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
 kubernetes_version=""
 no_set_context="false"
 num_worker=2
+kubedee_vm_mode="false"
+controller_limits_cpu="$(nproc)"
+controller_limits_memory="4GiB"
+worker_limits_cpu="$(nproc)"
+worker_limits_memory="4GiB"
+storage_pool="kubedee"
+rootfs_size="10GiB"
 
 # shellcheck source=/dev/null
 source "${kubedee_source_dir}/lib.bash"
@@ -71,6 +77,13 @@ Options:
                                                         takes precedence over \`--bin-dir\`
   --no-set-context                                      prevent kubedee from adding a new kubeconfig context
   --num-worker <num>                                    number of worker nodes to start (default: 2)
+  --vm                                                  launch LXD virtual machines instead of containers
+  --controller-limits-cpu <num>                         set controller container/VM \`limits.cpu\` (default: ${controller_limits_cpu})
+  --controller-limits-memory <amount>                   set controller container/VM \`limits.memory\` (default: ${controller_limits_memory})
+  --worker-limits-cpu <num>                             set worker container/VM \`limits.cpu\` (default: ${worker_limits_cpu})
+  --worker-limits-memory <amount>                       set worker container/VM \`limits.memory\` (default: ${worker_limits_memory})
+  --storage-pool <pool_name>                            set LXD storage pool (default: ${storage_pool})
+  --rootfs-size <size>                                  set LXD VM rootfs volume size (default: ${rootfs_size})
 USAGE
   exit 1
 }
@@ -80,20 +93,10 @@ cmd_create() {
   cluster_name="$(kubedee::validate_name "${1}")"
   [[ -d "${kubedee_dir}/clusters/${cluster_name}" ]] && kubedee::exit_error "Found existing cluster with name: ${cluster_name}"
   kubedee::create_network "${cluster_name}"
-  kubedee::create_storage_pool
-  kubedee::prune_old_caches "${cluster_name}"
-  kubedee::prepare_container_image "${cluster_name}"
+  kubedee::create_storage_pool "${storage_pool}"
+  kubedee::prepare_image "${cluster_name}" "${kubedee_container_image}" "container"
+  [[ "${kubedee_vm_mode}" == "true" ]] && kubedee::prepare_image "${cluster_name}" "${kubedee_vm_image}" "vm"
   kubedee::log_info "Creating new cluster ${cluster_name} ..."
-  if [[ -n "${kubernetes_version}" ]]; then
-    kubedee::fetch_k8s "${kubernetes_version}"
-    kubedee::copy_k8s_binaries "${cluster_name}" "${kubedee_cache_dir}/kubernetes/${kubernetes_version}"
-  else
-    kubedee::copy_k8s_binaries "${cluster_name}" "${bin_dir}"
-  fi
-  kubedee::copy_etcd_binaries "${cluster_name}"
-  kubedee::copy_crio_files "${cluster_name}"
-  kubedee::copy_runc_binaries "${cluster_name}"
-  kubedee::copy_cni_plugins "${cluster_name}"
   kubedee::create_certificate_authority_etcd "${cluster_name}"
   kubedee::create_certificate_authority_k8s "${cluster_name}"
   kubedee::create_certificate_authority_aggregation "${cluster_name}"
@@ -126,10 +129,12 @@ cmd_start() {
   done
   kubedee::log_info "Starting cluster ${cluster_name} ..."
   kubedee::launch_etcd "${cluster_name}"
-  kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-controller"
+  kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-controller" "${controller_limits_cpu}" "${controller_limits_memory}"
   for ((i = 0; i < num_worker; i++)); do
-    kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}"
+    kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${worker_suffixes[${i}]}" "${worker_limits_cpu}" "${worker_limits_memory}" &
   done
+  # shellcheck disable=SC2046
+  wait $(jobs -rp)
   kubedee::configure_etcd "${cluster_name}"
   kubedee::create_certificate_kubernetes "${cluster_name}" "${apiserver_extra_hostnames}"
   kubedee::configure_controller "${cluster_name}" "kubedee-${cluster_name}-controller" "${admission_plugins}"
@@ -186,8 +191,9 @@ cmd_start-worker() {
   [[ -d "${kubedee_dir}/clusters/${cluster_name}" ]] || kubedee::exit_error "Found no cluster with name: ${cluster_name} - did you create it?"
   local name_suffix
   name_suffix="$(tr -cd 'a-z0-9' </dev/urandom | head -c 6)" || true
-  kubedee::prepare_container_image "${cluster_name}"
-  kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}"
+  kubedee::prepare_image "${cluster_name}" "${kubedee_container_image}" "container"
+  [[ "${kubedee_vm_mode}" == "true" ]] && kubedee::prepare_image "${cluster_name}" "${kubedee_vm_image}" "vm"
+  kubedee::launch_container "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}" "${worker_limits_cpu}" "${worker_limits_memory}"
   kubedee::configure_worker "${cluster_name}" "kubedee-${cluster_name}-worker-${name_suffix}"
   kubedee::log_success "Node ${cluster_name}-${name_suffix} started"
 }
@@ -277,6 +283,7 @@ main() {
       shift
       ;;
     --bin-dir)
+      # shellcheck disable=SC2034
       bin_dir="${2}"
       shift
       shift
@@ -291,7 +298,6 @@ main() {
       ;;
     --dir)
       kubedee_dir="${2}"
-      kubedee_cache_dir="${kubedee_dir}/cache/${kubedee_version}"
       shift
       shift
       ;;
@@ -313,6 +319,40 @@ main() {
       no_set_context="true"
       shift
       ;;
+    --vm)
+      kubedee_vm_mode="true"
+      shift
+      ;;
+    --controller-limits-memory)
+      controller_limits_memory="${2}"
+      shift
+      shift
+      ;;
+    --controller-limits-cpu)
+      controller_limits_cpu="${2}"
+      shift
+      shift
+      ;;
+    --worker-limits-memory)
+      worker_limits_memory="${2}"
+      shift
+      shift
+      ;;
+    --worker-limits-cpu)
+      worker_limits_cpu="${2}"
+      shift
+      shift
+      ;;
+    --storage-pool)
+      storage_pool="${2}"
+      shift
+      shift
+      ;;
+    --rootfs-size)
+      rootfs_size="${2}"
+      shift
+      shift
+      ;;
     help | -h | --help)
       exit_usage
       ;;
@@ -322,8 +362,19 @@ main() {
       ;;
     esac
   done
+  local -r k8s_suffix="${kubernetes_version:-localbin}"
+  kubedee_container_image="kubedee-cnt-${kubedee_version//[._]/-}-k8s-${k8s_suffix//[._]/-}"
+  kubedee_vm_image="kubedee-vm-${kubedee_version//[._]/-}-k8s-${k8s_suffix//[._]/-}"
+  kubedee_image="${kubedee_container_image}"
+  lxc_init_opts="--storage ${storage_pool}"
+  if [[ "${kubedee_vm_mode}" == "true" ]]; then
+    # shellcheck disable=SC2034
+    lxc_init_opts+=" --vm -c security.secureboot=false"
+    # shellcheck disable=SC2034
+    kubedee_image="${kubedee_vm_image}"
+  fi
   # shellcheck disable=SC2034
-  declare -g -r kubedee_dir kubedee_cache_dir
+  declare -g -r kubedee_dir
   mkdir -p "${kubedee_dir}"
   # Bash 4.3.48(1)-release does see `${args[@]}` as unbound,
   # 4.4.12(1)-release does not. Disable `nounset` temporarily.

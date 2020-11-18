@@ -36,6 +36,14 @@ kdee() {
   kubedee --no-set-context --dir "${kubedee_dir}" "$@"
 }
 
+readonly kubedee_version="$(
+  if git rev-parse --git-dir &>/dev/null; then
+    git describe --tags --always --dirty
+  else
+    echo "dev"
+  fi
+)"
+
 for v in "${k8s_versions[@]}"; do
   cluster_name="smoke-test-${v}"
   kdee up --kubernetes-version "${v}" "${cluster_name}"
@@ -44,5 +52,7 @@ for v in "${k8s_versions[@]}"; do
 
   # Delete Kubernetes binaries in between to save disk space
   # (and make smoke-test work on sourcehut)
+  lxc image delete "kubedee-cnt-${kubedee_version//[._]/-}-k8s-${v//[._]/-}" ||:
+  lxc image delete "kubedee-vm-${kubedee_version//[._]/-}-k8s-${v//[._]/-}" ||:
   rm -rf "${kubedee_dir}/cache/"*"/kubernetes/"
 done
