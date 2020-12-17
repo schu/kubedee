@@ -56,9 +56,9 @@ kubedee::exit_error() {
 
 readonly kubedee_base_image="ubuntu:20.04"
 readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._]/-}"
-readonly kubedee_etcd_version="v3.4.7"
-readonly kubedee_runc_version="v1.0.0-rc10"
-readonly kubedee_cni_plugins_version="v0.8.5"
+readonly kubedee_etcd_version="v3.4.14"
+readonly kubedee_runc_version="v1.0.0-rc92"
+readonly kubedee_cni_plugins_version="v0.9.0"
 readonly kubedee_crio_version="v1.17.3"
 
 readonly lxd_status_code_running=103
@@ -194,7 +194,7 @@ kubedee::fetch_etcd() {
   (
     kubedee::cd_or_exit_error "${tmp_dir}"
     kubedee::log_info "Fetching etcd ${kubedee_etcd_version} ..."
-    curl -fsSL -o - "https://github.com/coreos/etcd/releases/download/${kubedee_etcd_version}/etcd-${kubedee_etcd_version}-linux-amd64.tar.gz" |
+    curl -fsSL -o - "https://github.com/etcd-io/etcd/releases/download/${kubedee_etcd_version}/etcd-${kubedee_etcd_version}-linux-amd64.tar.gz" |
       tar -xzf - --strip-components 1
     kubedee::copyl_or_exit_error "${cache_dir}/" etcd etcdctl
   )
@@ -994,6 +994,9 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --kubelet-client-key=/etc/kubernetes/kubernetes-key.pem \\
   --kubelet-https=true \\
   --runtime-config=rbac.authorization.k8s.io/v1alpha1 \\
+  --service-account-issuer=https://api \\
+  --service-account-signing-key-file=/etc/kubernetes/ca-key.pem \\
+  --service-account-api-audiences=kubernetes.default.svc \\
   --service-account-key-file=/etc/kubernetes/ca-key.pem \\
   --service-cluster-ip-range=10.32.0.0/24 \\
   --service-node-port-range=30000-32767 \\
@@ -1085,10 +1088,16 @@ EOF
 kubedee::apiserver_wait_running() {
   local -r cluster_name="${1}"
   local -r container_name="kubedee-${cluster_name}-controller"
+  local -r cluster_certificates="${kubedee_dir}/clusters/${cluster_name}/certificates"
+
   kubedee::container_wait_running "${container_name}"
-  until lxc exec "${container_name}" -- curl --ipv4 --fail --silent --max-time 3 "http://127.0.0.1:8080/api" &>/dev/null; do
-    kubedee::log_info "Waiting for kube-apiserver to become ready ..."
-    sleep 3
+  until curl --ipv4 --fail --silent --max-time 3 \
+    --cacert "${cluster_certificates}/ca.pem" \
+    --key "${cluster_certificates}/admin-key.pem" \
+    --cert "${cluster_certificates}/admin.pem" \
+    "https://$(kubedee::container_ipv4_address "${container_name}"):6443/api" &>/dev/null; do
+      kubedee::log_info "Waiting for kube-apiserver to become ready ..."
+      sleep 3
   done
 }
 
@@ -1306,6 +1315,7 @@ ExecStart=/usr/local/bin/kube-proxy \\
   --cluster-cidr=10.200.0.0/16 \\
   --kubeconfig=/etc/kubernetes/kube-proxy.kubeconfig \\
   --proxy-mode=iptables \\
+  --conntrack-max-per-core=0 \\
   --v=2
 Restart=on-failure
 RestartSec=5
