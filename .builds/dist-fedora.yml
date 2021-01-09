@@ -6,6 +6,12 @@ tasks:
       # Avoid selinux policy error; for details see
       # https://gist.github.com/schu/59b253481b2a26d0e9463ea01449768b
       sudo mount -t tmpfs tmpfs /sys/fs/selinux
+      # Make sure cgroup v2 devices group is enabled
+      # https://github.com/lxc/lxc/issues/2268#issuecomment-380019126
+      sudo mount -o remount,rw /sys/fs/cgroup
+      sudo mkdir /sys/fs/cgroup/devices
+      sudo mount -t cgroup devices -o devices /sys/fs/cgroup/devices
+      sudo mount -o remount,ro /sys/fs/cgroup
       sudo dnf install -y curl jq snapd tar
       # Wait for snapd to be "seeded", otherwise we encounter
       # "error: too early for operation, device not yet seeded or device model not acknowledged"
