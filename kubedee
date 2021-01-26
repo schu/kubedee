@@ -94,6 +94,7 @@ cmd_create() {
   kubedee::copy_crio_files "${cluster_name}"
   kubedee::copy_runc_binaries "${cluster_name}"
   kubedee::copy_cni_plugins "${cluster_name}"
+  kubedee::copy_kata_artifacts "${cluster_name}"
   kubedee::create_certificate_authority_etcd "${cluster_name}"
   kubedee::create_certificate_authority_k8s "${cluster_name}"
   kubedee::create_certificate_authority_aggregation "${cluster_name}"
@@ -143,6 +144,7 @@ cmd_start() {
   fi
   kubedee::deploy_flannel "${cluster_name}"
   kubedee::deploy_core_dns "${cluster_name}"
+  kubedee::deploy_kata_runtimes "${cluster_name}"
   kubedee::wait_for_node "${cluster_name}" "kubedee-${cluster_name}-controller"
   kubedee::label_and_taint_controller "${cluster_name}" "kubedee-${cluster_name}-controller"
   for ((i = 0; i < num_worker; i++)); do

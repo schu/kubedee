@@ -60,6 +60,7 @@ readonly kubedee_etcd_version="v3.4.14"
 readonly kubedee_runc_version="v1.0.0-rc93"
 readonly kubedee_cni_plugins_version="v0.9.1"
 readonly kubedee_crio_version="v1.20.0"
+readonly kubedee_kata_version="2.2.0"
 
 readonly lxd_status_code_running=103
 
@@ -201,6 +202,30 @@ kubedee::fetch_etcd() {
   rm -rf "${tmp_dir}"
 }
 
+kubedee::inject_kata_crio_config() {
+  local -r cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
+  sed -i -e 's/^\([[:space:]]*#*[[:space:]]*manage\(_network\)*_ns_lifecycle\)\s*=.*/\1 = true/g' "${cache_dir}/crio.conf"
+  cat <<EOF >>"${cache_dir}/crio.conf"
+# Kata Containers with the QEMU VMM
+[crio.runtime.runtimes.kata-qemu]
+privileged_without_host_devices = true
+runtime_path = "/opt/kata/bin/containerd-shim-kata-v2"
+runtime_type = "vm"
+
+# Kata Containers with the Firecracker VMM
+[crio.runtime.runtimes.kata-fc]
+privileged_without_host_devices = true
+runtime_path = "/opt/kata/bin/containerd-shim-kata-v2"
+runtime_type = "vm"
+
+# Kata Containers with the Cloud-Hypervisor VMM
+[crio.runtime.runtimes.kata-clh]
+privileged_without_host_devices = true
+runtime_path = "/opt/kata/bin/containerd-shim-kata-v2"
+runtime_type = "vm"
+EOF
+}
+
 kubedee::fetch_crio() {
   local -r cache_dir="${kubedee_cache_dir}/crio/${kubedee_crio_version}"
   mkdir -p "${cache_dir}"
@@ -213,6 +238,7 @@ kubedee::fetch_crio() {
     curl -fsSL -o - "https://files.schu.io/pub/cri-o/crio-amd64-${kubedee_crio_version}.tar.gz" |
       tar -xzf -
     kubedee::copyl_or_exit_error "${cache_dir}/" crio conmon pinns crio.conf crictl.yaml crio-umount.conf policy.json
+    kubedee::inject_kata_crio_config
   )
   rm -rf "${tmp_dir}"
 }
@@ -247,6 +273,18 @@ kubedee::fetch_cni_plugins() {
     kubedee::copyl_or_exit_error "${cache_dir}/" ./*
   )
   rm -rf "${tmp_dir}"
+}
+
+kubedee::fetch_kata() {
+  local -r cache_dir="${kubedee_cache_dir}/kata/${kubedee_kata_version}"
+  [[ -e "${cache_dir}/bin/kata-runtime" ]] && return
+  mkdir -p "${cache_dir}"
+  (
+    kubedee::cd_or_exit_error "${cache_dir}"
+    kubedee::log_info "Fetching Kata Containers ${kubedee_kata_version} ..."
+    curl -fsSL -o - "https://github.com/kata-containers/kata-containers/releases/download/${kubedee_kata_version}/kata-static-${kubedee_kata_version}-x86_64.tar.xz" |
+      tar -xJf - --strip-components 3 -C "${cache_dir}"
+  )
 }
 
 # Args:
@@ -301,6 +339,17 @@ kubedee::copy_cni_plugins() {
   local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/opt/cni/bin"
   mkdir -p "${target_dir}"
   kubedee::copyl_or_exit_error "${target_dir}/" "${cache_dir}/"*
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::copy_kata_artifacts() {
+  local -r cluster_name="${1}"
+  kubedee::fetch_kata
+  local -r cache_dir="${kubedee_cache_dir}/kata/${kubedee_kata_version}"
+  local -r target_dir="${kubedee_dir}/clusters/${cluster_name}/rootfs/opt/kata"
+  mkdir -p "${target_dir}"
+  cp -r "${cache_dir}/"* "${target_dir}/"
 }
 
 # Args:
@@ -1176,7 +1225,7 @@ RAW_LXC
     --profile default \
     --config security.privileged=true \
     --config security.nesting=true \
-    --config linux.kernel_modules=ip_tables,ip6_tables,netlink_diag,nf_nat,overlay \
+    --config linux.kernel_modules=ip_tables,ip6_tables,netlink_diag,nf_nat,overlay,kvm,vhost-net,vhost-scsi,vhost-vsock,vsock \
     --config raw.lxc="${raw_lxc}" \
     "${kubedee_container_image}" "${container_name}"
 }
@@ -1223,6 +1272,16 @@ kubedee::configure_worker() {
   # `Failed to start OOM watcher open /dev/kmsg: no such file or directory`
   lxc config device add "${container_name}" "kmsg" unix-char source="/dev/kmsg" path="/dev/kmsg"
 
+  # Kata
+  lxc config device add "${container_name}" kata disk source="${kubedee_dir}/clusters/${cluster_name}/rootfs/opt/kata" path="/opt/kata/"
+  lxc config device add "${container_name}" "kvm" unix-char source="/dev/kvm" path="/dev/kvm"
+  lxc config device add "${container_name}" "net-tun" unix-char source="/dev/net/tun" path="/dev/net/tun"
+  lxc config device add "${container_name}" "vhost-net" unix-char source="/dev/vhost-net" path="/dev/vhost-net"
+  lxc config device add "${container_name}" "vhost-scsi" unix-char source="/dev/vhost-scsi" path="/dev/vhost-sci"
+  lxc config device add "${container_name}" "vhost-vsock" unix-char source="/dev/vhost-vsock" path="/dev/vhost-vsock"
+  lxc config device add "${container_name}" "vsock" unix-char source="/dev/vsock" path="/dev/vsock"
+  lxc exec "${container_name}" -- bash -c "ln -s /opt/kata/bin/containerd-shim-kata-v2 /usr/bin/containerd-shim-kata-v2"
+
   kubedee::log_info "Configuring ${container_name} ..."
   cat <<EOF | lxc exec "${container_name}" bash
 set -euo pipefail
@@ -1239,7 +1298,9 @@ cat >/etc/systemd/system/crio.service <<'CRIO_UNIT'
 Description=CRI-O daemon
 
 [Service]
-ExecStart=/usr/local/bin/crio --registry docker.io
+ExecStartPre=/usr/bin/mkdir -p /run/kata-containers/shared/sandboxes
+ExecStartPre=/usr/bin/mount --bind --make-rshared /run/kata-containers/shared/sandboxes /run/kata-containers/shared/sandboxes
+ExecStart=/usr/local/bin/crio
 Restart=always
 RestartSec=10s
 
@@ -1365,6 +1426,15 @@ kubedee::deploy_core_dns() {
   local -r dns_manifest="${kubedee_source_dir}/manifests/core-dns.yml"
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" \
     apply -f "${dns_manifest}"
+}
+
+# Args:
+#   $1 The validated cluster name
+kubedee::deploy_kata_runtimes() {
+  local -r cluster_name="${1}"
+  local -r kata_manifest="${kubedee_source_dir}/manifests/kata-runtime-classes.yml"
+  kubedee::log_info "Deploy Kata-Containers runtime classes ..."
+  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" apply -f "${kata_manifest}"
 }
 
 # Args:
