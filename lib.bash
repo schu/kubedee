@@ -59,7 +59,7 @@ readonly kubedee_container_image="kubedee-container-image-${kubedee_version//[._
 readonly kubedee_etcd_version="v3.4.14"
 readonly kubedee_runc_version="v1.0.0-rc93"
 readonly kubedee_cni_plugins_version="v0.9.1"
-readonly kubedee_crio_version="v1.17.3"
+readonly kubedee_crio_version="v1.20.0"
 
 readonly lxd_status_code_running=103
 
@@ -1240,7 +1240,7 @@ cat >/etc/systemd/system/crio.service <<'CRIO_UNIT'
 Description=CRI-O daemon
 
 [Service]
-ExecStart=/usr/local/bin/crio --runtime /usr/bin/runc --registry docker.io
+ExecStart=/usr/local/bin/crio --registry docker.io
 Restart=always
 RestartSec=10s
 
@@ -1291,6 +1291,7 @@ Requires=crio.service
 
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
+  --cgroup-driver=systemd \\
   --config=/etc/kubernetes/config/kubelet.yaml \\
   --container-runtime=remote \\
   --container-runtime-endpoint=unix:///var/run/crio/crio.sock \\
