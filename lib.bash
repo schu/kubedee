@@ -992,7 +992,6 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --kubelet-certificate-authority=/etc/kubernetes/ca.pem \\
   --kubelet-client-certificate=/etc/kubernetes/kubernetes.pem \\
   --kubelet-client-key=/etc/kubernetes/kubernetes-key.pem \\
-  --kubelet-https=true \\
   --runtime-config=rbac.authorization.k8s.io/v1alpha1 \\
   --service-account-issuer=https://api \\
   --service-account-signing-key-file=/etc/kubernetes/ca-key.pem \\
