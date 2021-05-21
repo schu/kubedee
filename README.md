@@ -10,7 +10,7 @@ Under the hood, [CRI-O](https://github.com/kubernetes-incubator/cri-o) is used
 as container runtime and [Flannel](https://github.com/coreos/flannel) for
 networking.
 
-For questions or feedback, please open an issue or join `#kubedee` on [freenode].
+For questions or feedback, please open an issue.
 
 ## Requirements
 
