@@ -10,7 +10,7 @@ echo "%sudo ALL=(ALL) NOPASSWD:ALL" >>/etc/sudoers.d/10-sudo-group-nopasswd
 
 apt-get update
 
-apt-get install -y \
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
   jq \
   lxd \
   lxd-client
