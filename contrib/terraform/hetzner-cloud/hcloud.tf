@@ -23,7 +23,7 @@ provider "hcloud" {
 resource "hcloud_server" "test" {
   count       = 1
   name        = var.hostname
-  image       = "ubuntu-18.04"
+  image       = "ubuntu-20.04"
   ssh_keys    = var.hcloud_sshkeys
   server_type = "cx21"
   user_data   = file("user-data.bash")
