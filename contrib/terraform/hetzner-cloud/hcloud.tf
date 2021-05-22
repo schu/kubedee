@@ -1,32 +1,32 @@
 variable "hcloud_token" {
-  type = "string"
+  type = string
 }
 
 variable "hcloud_sshkeys" {
-  type = "list"
+  type = list(string)
 }
 
 variable "kubernetes_version" {
-	type = "string"
-	default = "v1.18.0"
+  type    = string
+  default = "v1.18.0"
 }
 
 variable "hostname" {
-	type = "string"
-	default = "kubedee.example.com"
+  type    = string
+  default = "kubedee.example.com"
 }
 
 provider "hcloud" {
-  token = "${var.hcloud_token}"
+  token = var.hcloud_token
 }
 
 resource "hcloud_server" "test" {
-  count = 1
-  name = "${var.hostname}"
-  image = "ubuntu-18.04"
-  ssh_keys = "${var.hcloud_sshkeys}"
+  count       = 1
+  name        = var.hostname
+  image       = "ubuntu-18.04"
+  ssh_keys    = var.hcloud_sshkeys
   server_type = "cx21"
-  user_data = "${file("user-data.bash")}"
+  user_data   = file("user-data.bash")
 
   provisioner "remote-exec" {
     inline = [
@@ -52,15 +52,15 @@ resource "hcloud_server" "test" {
   }
 
   provisioner "file" {
-    source = "../../../kubedee"
+    source      = "../../../kubedee"
     destination = "/home/ubuntu/kubedee/kubedee"
   }
   provisioner "file" {
-    source = "../../../lib.bash"
+    source      = "../../../lib.bash"
     destination = "/home/ubuntu/kubedee/lib.bash"
   }
   provisioner "file" {
-    source = "../../../manifests"
+    source      = "../../../manifests"
     destination = "/home/ubuntu/kubedee/"
   }
 
