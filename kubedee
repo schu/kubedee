@@ -172,9 +172,6 @@ cmd_start() {
   fi
   kubedee::log_info "Cluster nodes can be accessed with 'lxc exec <name> bash'"
   kubedee::log_info "Cluster files can be found in '${kubedee_dir}/clusters/${cluster_name}'\\n"
-  kubedee::log_info "Current component status is (should be healthy):"
-  kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get cs
-  echo
   kubedee::log_info "Current node status is (should be ready soon):"
   kubectl --kubeconfig "${kubedee_dir}/clusters/${cluster_name}/kubeconfig/admin.kubeconfig" get nodes
   echo
