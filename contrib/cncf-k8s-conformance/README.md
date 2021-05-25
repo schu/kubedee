@@ -15,7 +15,7 @@ https://github.com/vmware-tanzu/sonobuoy/releases
 Run sonobuoy:
 
 ```
-sonobuoy run --wait
+sonobuoy run --wait --mode=certified-conformance
 ```
 
 Wait for sonobuoy to finish (`sonobuoy status` and `sonobuoy logs` can

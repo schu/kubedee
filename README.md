@@ -2,15 +2,13 @@
 
 [![builds.sr.ht status](https://builds.sr.ht/~schu/kubedee.svg)](https://builds.sr.ht/~schu/kubedee?)
 
-<img alt="Certified Kubernetes logo" width="100px" align="right" src="https://raw.githubusercontent.com/cncf/artwork/master/projects/kubernetes/certified-kubernetes/versionless/pantone/certified-kubernetes-pantone.png">
-
 Fast multi-node Kubernetes (>= 1.18) development and test clusters on [LXD](https://github.com/lxc/lxd).
 
 Under the hood, [CRI-O](https://github.com/kubernetes-incubator/cri-o) is used
 as container runtime and [Flannel](https://github.com/coreos/flannel) for
 networking.
 
-For questions or feedback, please open an issue or join `#kubedee` on [freenode].
+For questions or feedback, please open an issue.
 
 ## Requirements
 
@@ -51,7 +49,7 @@ To install an upstream version, use `--kubernetes-version` to specify
 the release (Git tag) that you want to install. For example:
 
 ```
-kubedee up test --kubernetes-version v1.18.0-alpha.1
+kubedee up test --kubernetes-version v1.21.1
 ```
 
 To install a local build, specify the location of the binaries
@@ -75,23 +73,19 @@ less than 60 seconds for a four node cluster (etcd, controller, 2x worker).
 ```
 [...]
 
+Switched to context "kubedee-test".
+
 ==> Cluster test started
 ==> kubectl config current-context set to kubedee-test
 
 ==> Cluster nodes can be accessed with 'lxc exec <name> bash'
 ==> Cluster files can be found in '/home/schu/.local/share/kubedee/clusters/test'
 
-==> Current component status is (should be healthy):
-NAME                 STATUS    MESSAGE             ERROR
-scheduler            Healthy   ok
-controller-manager   Healthy   ok
-etcd-0               Healthy   {"health":"true"}
-
 ==> Current node status is (should be ready soon):
 NAME                         STATUS     ROLES    AGE   VERSION
-kubedee-test-controller      NotReady   master   40s   v1.18.0-alpha.1
-kubedee-test-worker-8e570a   NotReady   node     34s   v1.18.0-alpha.1
-kubedee-test-worker-pn26h5   NotReady   node     29s   v1.18.0-alpha.1
+kubedee-test-controller      NotReady   master   16s   v1.21.1
+kubedee-test-worker-2ma3em   NotReady   node     9s    v1.21.1
+kubedee-test-worker-zm8ikt   NotReady   node     2s    v1.21.1
 ```
 
 kubectl's current-context has been changed to the new cluster automatically.
