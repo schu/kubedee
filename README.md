@@ -1,3 +1,5 @@
+End of life: [So long, kubedee](https://github.com/schu/kubedee/issues/84)
+
 ![kubedee logo](docs/logo/kubedee.png)
 
 [![builds.sr.ht status](https://builds.sr.ht/~schu/kubedee.svg)](https://builds.sr.ht/~schu/kubedee?)
